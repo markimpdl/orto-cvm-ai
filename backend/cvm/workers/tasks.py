@@ -836,6 +836,18 @@ _grow_slots = threading.BoundedSemaphore(GROW_SLOTS)
 HEAVY_GROW = {"_job_link", "_job_upload", "_job_make"}
 
 
+def _slot_wait(name: str, args: list) -> None:
+    """A pasted link/upload waiting for a free download slot shows it on its Crescer item (cvm/lives/progress.py)."""
+    from cvm.lives import progress, runs
+
+    try:
+        vid = runs.item_key_for(args[1]) if name == "_job_link" else args[1]["video_id"] if name == "_job_upload" else None
+    except Exception:  # noqa: BLE001
+        vid = None
+    if vid:
+        progress.mark(engine, progress.lives_key(args[0], vid), progress.QUEUED, progress.SLOT_WAIT, waiting=True)
+
+
 @huey.task()
 def grow_job(name: str, args: list) -> None:
     """Background work of the menu Crescer (cvm/api/grow.py `_job_*`): fn(session, channel, *rest)."""
@@ -844,6 +856,7 @@ def grow_job(name: str, args: list) -> None:
 
     heavy = name in HEAVY_GROW
     if heavy and not _grow_slots.acquire(blocking=False):
+        _slot_wait(name, args)
         grow_job.schedule((name, args), delay=60)
         return
     try:
@@ -864,6 +877,9 @@ def link_projects(key: str) -> None:
     from cvm import media_links
 
     if not _grow_slots.acquire(blocking=False):
+        from cvm.lives import progress
+
+        progress.mark(engine, progress.fabrica_key(key), progress.QUEUED, progress.SLOT_WAIT, waiting=True)
         link_projects.schedule((key,), delay=60)
         return
     try:
@@ -871,6 +887,23 @@ def link_projects(key: str) -> None:
             media_links.run(s, key)
     finally:
         _grow_slots.release()
+
+
+@huey.task()
+def produce_cuts(review_id: int) -> None:
+    """Cut editor "Produzir aprovados" (cvm/lives/cuts.py): the projects of the approved cuts. Attaching a multi-hour
+    recording probes and measures it (ffprobe, volumedetect), so it runs here and not in an API thread."""
+    from cvm.lives import cuts
+    from cvm.models import CutReview
+
+    with Session(engine) as s:
+        review = s.get(CutReview, review_id)
+        if not review or review.status != "producing":
+            return
+        try:
+            cuts.produce(s, review)
+        except Exception:  # noqa: BLE001 — the review goes back to "review" with the error for the page
+            log.exception("producing the cuts of review %s failed", review_id)
 
 
 @huey.task()

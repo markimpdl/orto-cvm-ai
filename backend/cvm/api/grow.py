@@ -1,11 +1,12 @@
 """Menu "Crescer" (docs/superpowers/specs/2026-11-21-clipagem-design.md), per channel:
 
 GET  /grow/{id}/lives            → {items: [{video_id, title, url, own, uploader, status:
-                                    working|ok|error|waiting, error, package: {long, shorts, moments}, at}]}
+                                    working|review|ok|error|waiting, error, review, package: {long, shorts, moments}, at}]}
 (how many Shorts a video gives is decided by its analysis: cvm/visuals/highlights.top_moments)
 POST /grow/{id}/lives/link       {url, title?} → {started, video_id}: the user's own video/live or another
                                     creator's (nothing is picked up automatically); 409 closed channel / already done
 POST /grow/{id}/lives/upload     multipart file (+ title) → {started, video_id}
+DELETE /grow/{id}/lives?video_id= → {deleted, freed, files}: item + cut review + files; 409 while still in use
 GET  /grow/{id}/monetization     → {hours_target, subs_target, deadline, hours, subs, connected, error, pace:
                                     {hours_per_day, subs_per_day, days_to_hours, days_to_subs}}
 """
@@ -38,6 +39,20 @@ def _channel(session: Session, channel_id: int) -> Channel:
 @router.get("/{channel_id}/lives")
 def lives(channel_id: int, session: Session = Depends(get_session)):
     return runs.status(session, _channel(session, channel_id))
+
+
+@router.delete("/{channel_id}/lives")
+def delete_live(channel_id: int, video_id: str, session: Session = Depends(get_session)):
+    """"Excluir" a sent video: list item, cut review and its files on disk (runs.delete_item) → {deleted, freed,
+    files}. 409 while it is processed or while a project made from it is not rendered yet (nothing deleted).
+    The id goes as a query parameter: a "Produzir quando acabar" item is keyed by its URL."""
+    c = _channel(session, channel_id)
+    try:
+        return runs.delete_item(session, c, video_id)
+    except KeyError as e:
+        raise HTTPException(404, "Esse vídeo não está mais na lista.") from e
+    except (ValueError, runs.InUse) as e:
+        raise HTTPException(409, str(e)) from e
 
 
 def _in_background(fn, *args) -> None:

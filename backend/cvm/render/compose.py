@@ -323,6 +323,37 @@ def editorial_mode(session: Session, project: Project) -> bool:
     return presenter_mode(session, project) == "editorial"
 
 
+def cover_presenter(mode: str, shown: bool) -> bool:
+    """The presenter's cut-out goes on the cover/thumbnail only when the video itself shows him (owner, 2026-11-25:
+    "Não coloque o avatar na capa se eu não solicitar avatar"): never in editorial (header + clip, no avatar), never
+    when no avatar scene/overlay/podcast was actually rendered."""
+    return bool(shown and mode != "editorial")
+
+
+def source_with_facecam(session: Session, project: Project) -> Asset | None:
+    """The project's recording that carries a webcam box (Asset meta `facecam`, cvm/render/stack.py), if any."""
+    from cvm.render.stack import source_facecam
+
+    rows = session.exec(select(Asset).where(Asset.project_id == project.id, Asset.kind == "user_media")
+                        .order_by(Asset.id)).all()
+    return next((a for a in rows if (a.meta or {}).get("kind", "video") == "video" and a.path
+                 and source_facecam(a.meta)), None)
+
+
+def header_graph(ass: str, cover: bool, length: float, W: int, H: int, fps: int,
+                 place: tuple[str, int, int] = ("", 0, 0)) -> str:
+    """-filter_complex of the editorial Short's final pass: captions, the header still (input 2) at `place` (scale
+    filter, x, y — the top of the frame, or its band in the 3-panel layout), then the 9:16 cover (input 3) over the
+    first COVER_S. The header is one still repeated by the loop filter (an `-loop 1` image input stalled an encode)."""
+    scale, x, y = place
+    g = (f"[0:v]ass='{ass}'[c];[2:v]{scale}format=rgba,loop=loop=-1:size=1,trim=duration={length:.3f},"
+         f"setpts=N/{fps}/TB[h];[c][h]overlay={x}:{y}:eof_action=pass[hd]")
+    if cover:
+        g += (f";[3:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1,format=yuv420p,"
+              f"loop=loop=-1:size=1,trim=duration={COVER_S},setpts=N/{fps}/TB[cv];[hd][cv]overlay=0:0:eof_action=pass[v]")
+    return g
+
+
 def presenter_overlay(session: Session, project: Project) -> bool:
     """True when the project (or else its channel) shows the cut-out presenter over the whole video, and everything
     it needs exists."""
@@ -510,9 +541,16 @@ def compose(session: Session, project: Project, language: str, profile_name: str
     editorial = editorial_mod.wanted(mode, vertical)  # special header/layout is vertical-only; avatar suppression is not
     from cvm.render import stack as stack_mod  # live highlights: streamer camera on top, game below (cvm/render/stack.py)
 
+    # the recording's own webcam box (cut editor / own live): editorial Shorts get camera + header + gameplay
+    fc_asset = source_with_facecam(session, project)
+    src_fc = stack_mod.source_facecam(fc_asset.meta) if fc_asset else None
     stack_fc = stack_mod.wanted(project, session.get(Channel, project.channel_id) if project.channel_id else None,
-                                vertical, editorial)
+                                vertical, editorial, source_fc=src_fc)
     stack_size = None
+    lay3 = stack_mod.layout3(src_fc, (fc_asset.meta or {}).get("facecam_order"), W, H,
+                             *stack_mod.src_size(Path(fc_asset.path))) \
+        if stack_mod.three_wanted(editorial, vertical, src_fc) else None
+    cover_at: tuple[Path, dict, float, float] | None = None  # (recording, box, cut start, cut end) for the reaction cover
     end_screen = profile_name == "youtube" and not part
     hook_text = short_hook_text(script.content, ordered[0] if ordered else None, not part) if vertical and not editorial else None
     if hook_text:
@@ -544,7 +582,16 @@ def compose(session: Session, project: Project, language: str, profile_name: str
             kind = "chart"
         else:
             if kind == "video" and src:
-                if stack_fc and v.meta.get("media_id"):  # the live recording itself: camera on top, game below
+                own_fc = stack_mod.source_facecam(fc_asset.meta) if lay3 and v.meta.get("media_id") == fc_asset.id else None
+                if own_fc:  # the streamer's reaction on top (or under the header), the whole game below
+                    start = float(v.meta.get("start") or 0)
+                    stack_mod.clip3(src, d, W, H, fps, clip, own_fc, lay3, start=start,
+                                    hold=bool(v.meta.get("hold_last_frame")), intermediate=INTERMEDIATE)
+                    if cover_at is None:
+                        cover_at = (src, own_fc, start, start + d)
+                    elif cover_at[0] == src:
+                        cover_at = (src, own_fc, cover_at[2], start + d)
+                elif stack_fc and v.meta.get("media_id"):  # the live recording itself: camera on top, game below
                     stack_size = stack_size or stack_mod.src_size(src)
                     stack_mod.clip(src, d, W, H, fps, clip, stack_fc, start=float(v.meta.get("start") or 0),
                                    hold=bool(v.meta.get("hold_last_frame")), intermediate=INTERMEDIATE)
@@ -635,7 +682,9 @@ def compose(session: Session, project: Project, language: str, profile_name: str
                                          hide=silent, margin_bottom=caption_margin)  # off while he isn't the one talking
         caption_margin = max(caption_margin, side + int(H * 0.02))
 
-    if editorial:  # captions right under the 16:9 picture, the header above it
+    if lay3:  # 3 panels: captions at the bottom of the gameplay, off the streamer's face and the header
+        caption_margin = stack_mod.caption_margin3(H)
+    elif editorial:  # captions right under the 16:9 picture, the header above it
         caption_margin = H - editorial_mod.CAPTION_TOP - int(H * 0.075)
     ass = write_ass(words, work / "captions.ass", W, H, caption_margin, overlays, big=vertical)
 
@@ -644,9 +693,24 @@ def compose(session: Session, project: Project, language: str, profile_name: str
 
     channel = session.get(Channel, project.channel_id) if project.channel_id else None
     scene_media = {i: Path(v.meta.get("still") or v.path) for i, v in visuals.items() if v.path}
+    # the presenter goes on the cover only when this video shows him (owner, 2026-11-25: "Não coloque o avatar na
+    # capa se eu não solicitar avatar"); otherwise a Short's cover comes from the video itself
+    with_presenter = cover_presenter(mode, bool(avatars or talk or alpha))
+    first = visuals.get(ordered[0]["index"]) if ordered else None
+    video_bg = None
+    if vertical and not with_presenter:
+        if cover_at:  # the streamer's reaction, big
+            try:
+                rsrc, rfc, ra, rb = cover_at
+                video_bg = stack_mod.reaction_cover(rsrc, rfc, stack_mod.reaction_time(rsrc, rfc, ra, rb), W, H,
+                                                    work / "cover_reaction.jpg")
+            except Exception as e:  # noqa: BLE001 — the first frame still makes a cover
+                log.warning("reaction cover skipped: %s", e)
+        if video_bg is None and clips and first is not None and (first.meta or {}).get("media_id"):
+            video_bg = clips[0]  # the recording's own first scene, never an AI picture
     thumbs = make_thumbnails(project, script.content, language, clips[0] if clips else video, out_dir, W > H,
                              variants=profile_name == "youtube" and not part, kids=bool(channel and channel.made_for_kids),
-                             scene_media=scene_media)
+                             scene_media=scene_media, presenter=with_presenter, background_image=video_bg)
     thumb = thumbs[0]
     cover = thumb if vertical and thumb.exists() else None
 
@@ -671,16 +735,14 @@ def compose(session: Session, project: Project, language: str, profile_name: str
     if editorial:
         try:
             kicker, headline = editorial_mod.header_text(script.content, project.topic)
-            header = editorial_mod.header_png(kicker, headline, channel.name if channel else "", work / "editorial_header.png", W)
+            header = editorial_mod.header_png(kicker, headline, channel.name if channel else "", work / "editorial_header.png", W,
+                                              height=lay3["header"][1] if lay3 else None)
         except Exception as e:  # noqa: BLE001 — the Short is still watchable without its header
             log.warning("editorial header skipped: %s", e)
     if header:
-        cv = (f"[3:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1,format=yuv420p,"
-              f"loop=loop=-1:size=1,trim=duration={COVER_S},setpts=N/{fps}/TB[cv];[hd][cv]overlay=0:0:eof_action=pass[v]") if cover else ""
-        # the header is one still repeated by the loop filter (an `-loop 1` image input stalled an encode before)
+        place = stack_mod.header_place(lay3, W, png_h=lay3["header"][1]) if lay3 else ("", 0, 0)  # 3 panels: the header sits in its band
         vargs = ["-i", str(header), *(["-i", str(cover)] if cover else []), "-filter_complex",
-                 f"[0:v]ass='{_filter_path(ass)}'[c];[2:v]format=rgba,loop=loop=-1:size=1,trim=duration={length:.3f},"
-                 f"setpts=N/{fps}/TB[h];[c][h]overlay=0:0:eof_action=pass[hd]" + (f";{cv}" if cover else ""),
+                 header_graph(_filter_path(ass), bool(cover), length, W, H, fps, place),
                  "-map", "[v]" if cover else "[hd]"]
     elif cover:
         # the cover is one still repeated by the loop filter for COVER_S: an `-loop 1 -t` image input made the
@@ -728,6 +790,7 @@ def compose(session: Session, project: Project, language: str, profile_name: str
                    "chapters": chapters, "cover_frame": bool(cover),
                    "thumbnails": [str(t) for t in thumbs], "bumper": bumper_meta, "scenes": [sc["index"] for sc in ordered if sc["index"] in timings], "thumbnail": str(thumb), "avatar_scenes": sorted(avatars),
                    "avatar_on_screen": bool(avatars or talk or alpha),  # YouTube AI disclosure (cvm/guards.py)
+                   **({"layout": f"facecam_{lay3['order']}"} if lay3 else {}),
                    "credits": sorted({v.meta.get("credit") for v in visuals.values() if v.meta.get("credit")})
                    + ([c] if music and (c := credit_for(music)) else []),
                    "music": str(music) if music else None})

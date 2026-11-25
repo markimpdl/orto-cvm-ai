@@ -47,31 +47,45 @@ def info_from(e: dict, url: str = "") -> dict:
     canonical = (f"https://www.youtube.com/watch?v={vid}" if platform == "youtube"
                  else e.get("webpage_url") or (platforms.detect(url)["url"] if known else url))
     title = (e.get("title") or e.get("description") or vid).strip().splitlines()[0][:150]
-    return {"video_id": platforms.uid(platform, vid), "platform": platform, "title": title, "url": canonical,
-            "original_url": url or canonical, "duration": float(e.get("duration") or 0),
-            "channel_id": e.get("channel_id") or (e.get("uploader_id") if platform != "youtube" else None),
-            "uploader": e.get("uploader") or e.get("channel") or e.get("uploader_id"), "language": e.get("language")}
+    out = {"video_id": platforms.uid(platform, vid), "platform": platform, "title": title, "url": canonical,
+           "original_url": url or canonical, "duration": float(e.get("duration") or 0),
+           "channel_id": e.get("channel_id") or (e.get("uploader_id") if platform != "youtube" else None),
+           "uploader": e.get("uploader") or e.get("channel") or e.get("uploader_id"), "language": e.get("language")}
+    # YouTube's "most replayed" graph ([{start_time, end_time, value 0–1}]): a signal for the cut editor
+    heat = [{"start": float(h["start_time"]), "end": float(h["end_time"]), "value": float(h["value"])}
+            for h in e.get("heatmap") or [] if isinstance(h, dict) and {"start_time", "end_time", "value"} <= h.keys()]
+    if heat:
+        out["heatmap"] = heat
+    return out
 
 
 def probe(url: str, run=subprocess.run) -> dict:
     """info_from() of a pasted link, refusing lives that are not finished."""
     platform = platforms.platform_of(url) or "youtube"
-    r = run([str(YTDLP), "--dump-json", "--skip-download", "--no-playlist", url], capture_output=True, text=True, timeout=120)
+    cmd = [str(YTDLP), "--dump-json", "--skip-download", "--no-playlist", url]
+    r = run(cmd, capture_output=True, text=True, timeout=120)
+    if r.returncode != 0 and (login := platforms.login_args(r.stderr or "")):
+        r = run([*cmd[:1], *login, *cmd[1:]], capture_output=True, text=True, timeout=120)
     if r.returncode != 0:
         _raise_for(r.stderr or "", f"não consegui ler o vídeo ({platforms.LABEL.get(platform, platform)})", platform)
     return info_from(json.loads(r.stdout or "{}"), url)
 
 
-def download(live: dict, dest_dir: Path, run=subprocess.run) -> Path:
-    """dest_dir/live_<id>.mp4; an existing file is reused (a 3 h live is several GB)."""
+def download(live: dict, dest_dir: Path, run=None) -> Path:
+    """dest_dir/live_<id>.mp4; an existing file is reused (a 3 h live is several GB). yt-dlp's progress goes to the
+    current reporter ("Baixando N%", cvm/lives/progress.py)."""
+    if run is None:
+        from cvm.lives.progress import ytdlp_run as run
     dest_dir.mkdir(parents=True, exist_ok=True)
     key = platforms.file_key(live["video_id"])
     out = dest_dir / f"live_{key}.mp4"
     if out.exists() and out.stat().st_size > 0:
         return out
-    r = run([str(YTDLP), "-f", "bv*[height<=1080]+ba/b[height<=1080]/b", "--merge-output-format", "mp4",
-             "--no-playlist", "-o", str(dest_dir / f"live_{key}.%(ext)s"), live["url"]],
-            capture_output=True, text=True, timeout=6 * 3600)
+    cmd = [str(YTDLP), "-f", "bv*[height<=1080]+ba/b[height<=1080]/b", "--merge-output-format", "mp4",
+           "--no-playlist", "-o", str(dest_dir / f"live_{key}.%(ext)s"), live["url"]]
+    r = run(cmd, capture_output=True, text=True, timeout=6 * 3600)
+    if (r.returncode != 0 or not out.exists()) and (login := platforms.login_args(r.stderr or "")):
+        r = run([*cmd[:1], *login, *cmd[1:]], capture_output=True, text=True, timeout=6 * 3600)
     if r.returncode != 0 or not out.exists():
         _raise_for(r.stderr or r.stdout or "", "o download falhou", live.get("platform") or "youtube")
     return out

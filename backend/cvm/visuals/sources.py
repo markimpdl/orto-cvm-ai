@@ -572,9 +572,13 @@ def source_clip(url: str, out_dir: Path, start: float = 0, length: float = 20) -
     existing = list(out_dir.glob(f"{stem}.*"))
     if existing:
         return existing[0]
-    subprocess.run(
-        [str(YTDLP), "-f", "bv*[height<=1080]+ba/b[height<=1080]", "--merge-output-format", "mp4",
-         "--download-sections", f"*{start}-{start + length}", "-o", str(out_dir / f"{stem}.%(ext)s"), url],
-        check=True, capture_output=True, text=True,
-    )
+    from cvm.lives import platforms
+
+    cmd = [str(YTDLP), "-f", "bv*[height<=1080]+ba/b[height<=1080]", "--merge-output-format", "mp4",
+           "--download-sections", f"*{start}-{start + length}", "-o", str(out_dir / f"{stem}.%(ext)s"), url]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0 and (login := platforms.login_args(r.stderr or "")):
+        r = subprocess.run([*cmd[:1], *login, *cmd[1:]], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise subprocess.CalledProcessError(r.returncode, cmd, r.stdout, r.stderr)
     return next(out_dir.glob(f"{stem}.*"))

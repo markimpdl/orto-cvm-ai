@@ -153,8 +153,9 @@ def test_package_shows_the_avatar_only_in_its_own_scenes(env, monkeypatch):
     s, c, video = env
     _fake_analysis(monkeypatch, MOMENTS[:1])
     out = package.make_package(s, c, LIVE, video, n_shorts=1)
-    for pid in [out["long"], *out["shorts"]]:
-        assert s.get(Project, pid).presenter == "scenes"
+    assert s.get(Project, out["long"]).presenter == "scenes"
+    for pid in out["shorts"]:  # Shorts: editorial vertical, no avatar on screen (owner, 2026-11-25)
+        assert s.get(Project, pid).presenter == "editorial"
 
 
 def test_foreign_language_source_is_explained_by_the_presenter(env, monkeypatch):
@@ -162,6 +163,9 @@ def test_foreign_language_source_is_explained_by_the_presenter(env, monkeypatch)
     presenter explains what it teaches over the footage, on screen the whole time."""
     from cvm.lives import package
     s, c, video = env
+    c.prefs = {"shorts_commentary": True}  # commentary Shorts (off by default since 2026-11-25)
+    s.add(c)
+    s.commit()
     _fake_analysis(monkeypatch, MOMENTS[:2])
     tp = {"uploader": "GrandGecko", "url": "https://youtu.be/x", "channel_id": "UCx"}
     out = package.make_package(s, c, {**LIVE, "language": "en"}, video, n_shorts=2, third_party=tp)
@@ -169,7 +173,7 @@ def test_foreign_language_source_is_explained_by_the_presenter(env, monkeypatch)
         a = s.exec(select(Asset).where(Asset.project_id == pid, Asset.kind == "user_media")).one()
         assert a.meta["keep_audio"] is False
         topic = s.get(Project, pid).topic
-        assert "explica" in topic and "som original" not in topic
+        assert "explica" in topic and "a fala dele não toca" in topic and "Só esse trecho" not in topic
 
 
 def test_same_language_source_keeps_its_voice(env, monkeypatch):
@@ -180,3 +184,55 @@ def test_same_language_source_keeps_its_voice(env, monkeypatch):
                                third_party={"uploader": "Fulano", "url": "https://youtu.be/x", "channel_id": "UCx"})
     a = s.exec(select(Asset).where(Asset.project_id == out["shorts"][0], Asset.kind == "user_media")).one()
     assert a.meta["keep_audio"] is True
+
+
+TP = {"uploader": "Fulano", "url": "https://youtu.be/x", "channel_id": "UCx"}
+
+
+def _short(s, pid):
+    p = s.get(Project, pid)
+    a = s.exec(select(Asset).where(Asset.project_id == pid, Asset.kind == "user_media")).one()
+    return p, a
+
+
+def test_react_short_with_commentary_is_editorial_with_source_sound_under(env, monkeypatch):
+    """Bug 2026-11-25: another creator's Shorts came out with the avatar on screen; the agreed format is editorial
+    (header + clip, his voice commenting, the source low underneath; the avatar stays as the voice identity)."""
+    from cvm.grow.discover import prompts
+    from cvm.lives import package
+    s, c, video = env
+    _fake_analysis(monkeypatch, MOMENTS[:1])
+    out = package.create_projects(s, c, LIVE, video, {"segments": [{"start": 0.0, "end": 4.0}], "whole": True,
+                                                      "dropped": {}, "moments": []},
+                                  [{"start": 0.0, "end": 20.0, "commentary": True}], "viral", TP, 4.0)
+    p, a = _short(s, out["shorts"][0])
+    assert p.presenter == "editorial" and p.style == "react" and p.avatar_id == c.avatar_id
+    assert a.meta["audio_under"] is True and a.meta["keep_audio"] is False
+    assert prompts()["editorial"] in p.topic and prompts()["third"] in p.topic
+
+
+def test_clip_only_short_is_the_default(env, monkeypatch):
+    """Owner, 2026-11-25: a Short from Clips e cortes is only the cut: its own sound, no narration, no avatar."""
+    from cvm.lives import package
+    s, c, video = env
+    _fake_analysis(monkeypatch, MOMENTS[:1])
+    out = package.make_package(s, c, LIVE, video, n_shorts=1, third_party=TP)
+    p, a = _short(s, out["shorts"][0])
+    assert p.presenter == "editorial"
+    assert a.meta["keep_audio"] is True and a.meta["audio_under"] is False
+    assert "SEM COMENTÁRIO" in p.topic and 'narration ""' in p.topic
+
+
+def test_own_live_with_facecam_keeps_the_stack_when_commenting(env, monkeypatch):
+    from cvm.lives import package
+    s, c, video = env
+    c.prefs = {"facecam": {"x": 0.0, "y": 0.0, "w": 0.3, "h": 0.3}, "shorts_commentary": True}
+    s.add(c)
+    s.commit()
+    _fake_analysis(monkeypatch, MOMENTS[:2])
+    r = {"segments": [{"start": 0.0, "end": 4.0}], "whole": True, "dropped": {}, "moments": []}
+    out = package.create_projects(s, c, LIVE, video, r, [{"start": 0.0, "end": 20.0},
+                                                         {"start": 100.0, "end": 130.0, "commentary": False}], "viral",
+                                  None, 4.0, make_long=False)
+    assert s.get(Project, out["shorts"][0]).presenter == "scenes"  # camera over the game
+    assert s.get(Project, out["shorts"][1]).presenter == "editorial"  # clip only

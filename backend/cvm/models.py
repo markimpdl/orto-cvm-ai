@@ -233,6 +233,36 @@ class SharedEpisode(SQLModel, table=True):
     made_at: datetime | None = None
 
 
+class CutReview(SQLModel, table=True):
+    """One long video waiting for the owner in the cut editor (cvm/lives/cuts.py, /fabrica/cortes/[id]): the AI's
+    proposed cuts, his edits/decisions/comments, then the projects made from the approved ones.
+    status: analysing | review | producing | done | dismissed | error. kind: "shorts" (one Short project per approved
+    cut, Crescer/lives) | "segments" (the approved cuts become the kept ranges of /fabrica/novo projects).
+    The heavy per-second data (tracks, transcript, waveform) lives in data/cuts/<id>.json, not in the row."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    channel_id: int | None = Field(default=None, foreign_key="channel.id", index=True)
+    item_key: str | None = None  # runs item video_id (source "lives") or media_links request key (source "fabrica")
+    source: str = "lives"
+    kind: str = "shorts"
+    title: str = ""
+    status: str = Field(default="analysing", index=True)
+    method: str | None = None  # "viral" | "volume"
+    video_path: str = ""
+    proxy_path: str | None = None
+    duration: float = 0.0
+    live: dict = Field(default_factory=dict, sa_column=Column(JSON))  # probe info (title, url, uploader, language…)
+    third_party: dict | None = Field(default=None, sa_column=Column(JSON))
+    options: dict = Field(default_factory=dict, sa_column=Column(JSON))  # make_long, project_ids, min_shorts
+    cuts: list = Field(default_factory=list, sa_column=Column(JSON))
+    result: dict = Field(default_factory=dict, sa_column=Column(JSON))  # {long, shorts, …} once produced
+    error: str | None = None
+    # where the analysis is now (cvm/lives/progress.py): {step, label, pct, done, total, since, at, waiting}
+    progress: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=now)
+    updated_at: datetime = Field(default_factory=now)
+
+
 class Setting(SQLModel, table=True):
     """Small app settings edited from the UI (e.g. "autopilot")."""
 

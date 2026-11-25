@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAppData } from "@/components/AppData";
+import { PrepBar, PrepList, usePrep } from "@/components/PrepProgress";
 import {
-  api, connectChannelStats, getLives, getMonetization, getResearch, getViral, saveViralSettings, sendLiveLink, startResearch, startViral, uploadLive,
-  type LiveItem, type LivesStatus, type Monetization, type ResearchReport, type ViralState,
+  api, connectChannelStats, deleteLive, getCutSettings, getLives, putCutSettings, getMonetization, getResearch, getViral, saveViralSettings, sendLiveLink, startResearch, startViral, uploadLive,
+  type CutSettings, type LiveItem, type LivesStatus, type Monetization, type ResearchReport, type ViralState,
 } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 
@@ -57,6 +58,7 @@ export function ChannelSelect({ value, onChange }: { value: number; onChange: (i
 
 const PILL: Record<LiveItem["status"], string> = {
   working: "bg-chip text-body",
+  review: "bg-alert-soft text-alert-text",
   waiting: "bg-chip text-warn-text",
   ok: "bg-go-soft text-go-text",
   error: "bg-alert-soft text-alert-text",
@@ -86,6 +88,13 @@ export function LivesTab({ channelId }: { channelId: number }) {
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
   }, [load]);
+  // a download/analysis is running: its step moves every few seconds
+  const working = !!st?.items.some((i) => i.status === "working");
+  useEffect(() => {
+    if (!working) return;
+    const id = setInterval(load, 4000);
+    return () => clearInterval(id);
+  }, [working, load]);
 
   async function run(fn: () => Promise<unknown>, done: string) {
     setBusy(true);
@@ -102,8 +111,24 @@ export function LivesTab({ channelId }: { channelId: number }) {
       setBusy(false);
     }
   }
+  const [confirming, setConfirming] = useState<string | null>(null);
+  async function remove(it: LiveItem) {
+    setBusy(true);
+    try {
+      const r = await deleteLive(channelId, it.video_id);
+      const gb = r.freed / 1024 ** 3;
+      const size = gb >= 0.1 ? `${gb.toLocaleString(locale, { maximumFractionDigits: 1 })} GB` : `${Math.round(r.freed / 1024 ** 2).toLocaleString(locale)} MB`;
+      setToast({ msg: r.freed ? t("Vídeo excluído. {size} liberados.", { size }) : t("Vídeo excluído.") });
+      setConfirming(null);
+      load();
+    } catch (e) {
+      setToast({ msg: errorText(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
   const status = (it: LiveItem) =>
-    it.status === "ok" ? t("pronto") : it.status === "error" ? t("erro") : it.status === "waiting" ? t("aguardando") : t("gerando");
+    it.status === "review" ? t("cortes para revisar") : it.status === "ok" ? t("pronto") : it.status === "error" ? t("erro") : it.status === "waiting" ? t("aguardando") : t("gerando");
 
   if (st === undefined) return <div className="card p-5 text-muted">{t("Carregando…")}</div>;
   if (st === null) return <div className="card p-5 text-alert-text">{t("Não consegui falar com a API. Ela está ligada?")}</div>;
@@ -119,7 +144,8 @@ export function LivesTab({ channelId }: { channelId: number }) {
             {t("Gerar melhores momentos e Shorts")}
           </button>
         </div>
-        <p className="m-0 text-sm text-muted">{t("O sistema analisa o vídeo e decide quantos Shorts valem a pena: só os momentos fortes viram Short. Tudo espera a sua aprovação em Sua vez.")}</p>
+        <p className="m-0 text-sm text-muted">{t("O sistema analisa o vídeo e marca os momentos com mais chance de viralizar. Você revisa os cortes no editor antes de qualquer Short ser feito.")}</p>
+        <CutPrefs channelId={channelId} />
       </section>
 
       <section className="card flex flex-col gap-3 p-5" aria-labelledby="h-upload">
@@ -152,8 +178,25 @@ export function LivesTab({ channelId }: { channelId: number }) {
                   )}
                   <span className={`rounded-full px-3 py-1.5 text-[13px] font-semibold ${PILL[it.status]}`}>{status(it)}</span>
                   <span className="text-[13px] text-muted">{new Date(it.at).toLocaleString(locale)}</span>
+                  {it.status !== "working" && confirming !== it.video_id && (
+                    <button className="btn btn-sm" onClick={() => setConfirming(it.video_id)}>{t("Excluir")}</button>
+                  )}
                 </div>
+                {confirming === it.video_id && (
+                  <div className="flex flex-wrap items-center gap-2 rounded-[10px] bg-alert-soft px-4 py-3 text-sm" role="group" aria-label={t("Confirmar exclusão")}>
+                    <span className="flex-[1_1_260px] text-alert-text">{t("Excluir este vídeo? A gravação, a versão leve e a transcrição saem do disco. Os Shorts e vídeos já feitos com ele continuam.")}</span>
+                    <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => remove(it)}>{busy ? t("Excluindo…") : t("Excluir")}</button>
+                    <button className="btn btn-sm" disabled={busy} onClick={() => setConfirming(null)}>{t("Cancelar")}</button>
+                  </div>
+                )}
+                {it.status === "working" && it.progress && <PrepBar p={it.progress} />}
                 {it.error && it.status !== "ok" && <p className={`m-0 text-sm ${it.status === "error" ? "text-alert-text" : "text-warn-text"}`}>{it.error}</p>}
+                {it.status === "review" && it.review != null && (
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <Link className="btn btn-sm btn-ink" href={`/fabrica/cortes/${it.review}`}>{t("Revisar cortes")}</Link>
+                    <span className="text-muted">{t("Nenhum Short é feito antes de você aprovar.")}</span>
+                  </div>
+                )}
                 {it.package?.method && (
                   <p className="m-0 text-[13px] text-muted">
                     {it.package.method === "viral" ? t("Shorts escolhidos pelo potencial de viralizar.") : t("Shorts escolhidos pelo volume e movimento (a análise de viralização não estava disponível).")}
@@ -171,6 +214,68 @@ export function LivesTab({ channelId }: { channelId: number }) {
         )}
       </section>
     </div>
+  );
+}
+
+/** Per-channel cut options (backend /cuts/channels/{id}/settings). */
+function CutPrefs({ channelId }: { channelId: number }) {
+  const { t } = useT();
+  const { setToast } = useAppData();
+  const [p, setP] = useState<CutSettings | null>(null);
+  useEffect(() => { getCutSettings(channelId).then(setP).catch(() => setP(null)); }, [channelId]);
+  if (!p) return null;
+  async function change(patch: Partial<CutSettings>) {
+    try {
+      setP(await putCutSettings(channelId, patch));
+    } catch (e) {
+      setToast({ msg: errorText(e) });
+    }
+  }
+  return (
+    <div className="flex flex-col gap-1 border-t border-line pt-3">
+      <label className="flex min-h-11 items-center gap-2 text-sm text-body">
+        <input type="checkbox" className="h-5 w-5 accent-[#00843d]" checked={p.shorts_commentary} onChange={(e) => change({ shorts_commentary: e.target.checked })} />
+        {t("Shorts com o meu comentário por padrão (desligado: só o corte, com o som original)")}
+      </label>
+      <label className="flex min-h-11 items-center gap-2 text-sm text-body">
+        <input type="checkbox" className="h-5 w-5 accent-[#00843d]" checked={p.auto_approve_cuts} onChange={(e) => change({ auto_approve_cuts: e.target.checked })} />
+        {t("Aprovar os cortes sozinho neste canal, sem passar pelo editor")}
+      </label>
+    </div>
+  );
+}
+
+/** Videos whose cuts wait in the editor (any channel), on top of Clips e cortes. */
+export function PendingCutReviews() {
+  const { t } = useT();
+  const { cutReviews, channelOf, reload } = useAppData();
+  const prep = usePrep();
+  const running = prep.filter((i) => i.status === "working" || i.status === "analysing" || i.status === "error");
+  const nRunning = running.filter((i) => i.status !== "error").length;
+  const [was, setWas] = useState(0);
+  useEffect(() => {
+    if (nRunning < was) reload(); // an analysis finished: its review joins the list below
+    setWas(nRunning);
+  }, [nRunning, was, reload]);
+  if (!cutReviews.length && !running.length) return null;
+  return (
+    <section className="card flex flex-col gap-2 p-5" aria-labelledby="h-pending-cuts">
+      <h2 id="h-pending-cuts" className="h2 m-0">{t("Cortes para revisar")}</h2>
+      {running.length > 0 && (
+        <div className="-mx-5 border-b border-line-soft">
+          <PrepList items={running} />
+        </div>
+      )}
+      <ul className="m-0 flex list-none flex-col gap-1 p-0">
+        {cutReviews.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-center gap-3 py-1">
+            <span className="flex-[1_1_260px] text-[15px] font-semibold">{r.title}</span>
+            <span className="text-[13px] text-muted">{channelOf(r.channel_id)?.name ?? ""}</span>
+            <Link className="btn btn-sm btn-ink" href={`/fabrica/cortes/${r.id}`}>{t("Revisar cortes")}</Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

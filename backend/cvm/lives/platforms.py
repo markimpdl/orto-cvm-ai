@@ -10,9 +10,12 @@ and the site's error messages.
 - `uid(platform, info_id)` = "<platform>:<id>" (YouTube keeps its bare 11-char id: old items, files and own-video
   detection use it).
 - `error_for(platform, stderr)` maps yt-dlp's message to a clear one (login required, private, not found…).
+- `login_args(stderr)`: yt-dlp's login options (Settings.ytdlp_cookies: the user's browser or a cookies.txt) when the
+  site refused for age or login, else []: the caller retries once with them (owner, 2026-11-25).
 """
 
 import re
+from pathlib import Path
 
 LABEL = {"youtube": "YouTube", "twitch": "Twitch", "kick": "Kick", "tiktok": "TikTok", "instagram": "Instagram"}
 EXPERIMENTAL = {"kick"}
@@ -122,7 +125,9 @@ def file_key(video_id: str) -> str:
 _ERRORS = [
     (re.compile(r"private", re.I), "o vídeo é privado. Só dá para usar vídeos públicos"),
     (re.compile(r"subscriber|sub-only|subs only", re.I), "o vídeo é só para inscritos do canal"),
-    (re.compile(r"age.?restrict|confirm your age|\binappropriate", re.I), "o vídeo tem restrição de idade e pede login"),
+    (re.compile(r"age.?restrict|confirm your age|\binappropriate", re.I),
+     "o vídeo tem restrição de idade e pede login (para liberar, ponha CVM_YTDLP_COOKIES=chrome no .env, com o "
+     "YouTube logado nesse navegador)"),
     (re.compile(r"login|log in|sign in|logged|cookies|authenticat|rate-limit reached", re.I),
      "o site pede login para abrir este vídeo. Só dá para usar posts públicos (abra o link numa aba anônima para "
      "conferir)"),
@@ -143,3 +148,18 @@ def error_message(platform: str, stderr: str) -> str | None:
                 out += " (O Kick ainda é experimental: o site muda com frequência.)"
             return out
     return None
+
+
+NEEDS_LOGIN = re.compile(r"age.?restrict|confirm your age|\binappropriate|sign in|log in|login|logged|cookies", re.I)
+
+
+def login_args(stderr: str) -> list[str]:
+    """["--cookies-from-browser", <browser>] or ["--cookies", <file>] when the refusal asks for a login and
+    CVM_YTDLP_COOKIES is set; [] otherwise (the caller then shows the plain error)."""
+    from cvm.config import settings
+
+    value = (settings.ytdlp_cookies or "").strip()
+    if not value or not NEEDS_LOGIN.search(stderr or ""):
+        return []
+    path = Path(value).expanduser()
+    return ["--cookies", str(path)] if path.is_file() else ["--cookies-from-browser", value]

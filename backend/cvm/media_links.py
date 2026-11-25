@@ -9,13 +9,14 @@ project(s) of that request (nothing half-made is left), and the error shows on /
 
 Per link: `cut` "full" (the whole video) | "highlights" (best moments, worked out at the script step) | "ranges"
 (from–to stretches chosen by hand, kept as segments_auto False); `keep_audio` = its own sound plays in its scenes.
-State per request in Setting "fabrica_links" {items: [{key, title, project_ids, links, status: held|working|ok|error,
+State per request in Setting "fabrica_links" {items: [{key, title, project_ids, links, status: held|working|review|ok|error,
 error, at}]} (last 20).
 """
 
 import logging
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 
 from sqlalchemy.orm.attributes import flag_modified
 from sqlmodel import Session
@@ -67,6 +68,10 @@ def _save(session: Session, entry: dict) -> dict:
     flag_modified(row, "value")
     session.add(row)
     session.commit()
+    if entry.get("status") not in ("held", "working"):
+        from cvm.lives import progress
+
+        progress.clear(session, progress.fabrica_key(entry["key"]))
     return entry
 
 
@@ -172,20 +177,34 @@ def mark_third_party(session: Session, project: Project, info: dict, site: str) 
 
 def run(session: Session, key: str) -> None:
     """Worker side: download and attach every link to every project of the request, then start their jobs.
-    Any failure deletes those projects (with the files already attached) and keeps the error for the page."""
-    from cvm.api.projects import remove_project
-    from cvm.suggest import start
+    Any failure deletes those projects (with the files already attached) and keeps the error for the page.
+    Each step shows on the request ("Baixando N%", then the cut analysis: cvm/lives/progress.py)."""
+    from cvm.lives import progress
 
     entry = next((e for e in entries(session) if e.get("key") == key), None)
     if not entry:
         return
+    with progress.use(progress.setting_sink(progress.engine_of(session), progress.fabrica_key(key))):
+        _run(session, entry)
+
+
+def _run(session: Session, entry: dict) -> None:
+    from cvm.api.projects import remove_project
+    from cvm.lives import progress
+    from cvm.suggest import start
+
     projects = [p for p in (session.get(Project, pid) for pid in entry.get("project_ids") or []) if p]
+    fetched = []
+    ch = None
     try:
         if not projects:
             raise RuntimeError("o projeto foi apagado antes de o link baixar")
-        for link in entry.get("links") or []:
-            ch = session.get(Channel, projects[0].channel_id) if projects[0].channel_id else None
+        ch = session.get(Channel, projects[0].channel_id) if projects[0].channel_id else None
+        links = entry.get("links") or []
+        for n, link in enumerate(links, 1):
+            progress.report(progress.DOWNLOAD, "Lendo o link" + (f" {n} de {len(links)}" if len(links) > 1 else ""))
             info, path = fetch(link, ch)
+            fetched.append((link, info, path))
             for p in projects:
                 attach(session, p, link, info, path)
     except Exception as e:  # noqa: BLE001 — shown on /fabrica/novo
@@ -195,6 +214,42 @@ def run(session: Session, key: str) -> None:
             remove_project(session, p)
         _save(session, {**entry, "status": "error", "error": str(e)[:300], "at": datetime.now(UTC).isoformat()})
         return
+    if review_highlights(session, entry, projects, ch, fetched):
+        return  # the projects start once the owner approves the stretches in the cut editor
     for p in projects:
         start(session, p)
     _save(session, {**entry, "status": "ok", "error": None, "at": datetime.now(UTC).isoformat()})
+
+
+def review_highlights(session: Session, entry: dict, projects: list[Project], channel: Channel | None,
+                      fetched: list) -> bool:
+    """A "Melhores momentos" link goes through the cut editor (cvm/lives/cuts.py, kind "segments") before the
+    projects start: the approved stretches become their kept ranges. Not when the channel approves cuts by itself
+    (Channel.prefs.auto_approve_cuts: the stretches are found at the script step, as before), and an analysis that
+    fails starts the projects the old way instead of losing the request. True when a review now waits."""
+    from cvm.lives import cuts
+
+    hl = [(link, info, path) for link, info, path in fetched if link.get("cut") == "highlights"]
+    if not hl or not channel or cuts.auto_approve(channel):
+        return False
+    link, info, path = hl[0]  # one editor per request; other highlight files keep the automatic ranges
+    third = None if is_own(channel, info) else {"uploader": info.get("uploader"), "url": info.get("url"),
+                                                 "channel_id": info.get("channel_id")}
+    _save(session, {**entry, "status": "working", "error": None, "at": datetime.now(UTC).isoformat()})
+    try:
+        review = cuts.analyse(session, channel, info, Path(path), third_party=third, item_key=entry["key"],
+                              source="fabrica", kind="segments",
+                              options={"project_ids": [p.id for p in projects], "make_long": False}, min_shorts=1)
+    except Exception as e:  # noqa: BLE001
+        log.warning("cut review of %s failed, starting the old way: %s", entry.get("project_ids"), e)
+        return False
+    _save(session, {**entry, "status": "review", "review": review.id, "error": None,
+                    "at": datetime.now(UTC).isoformat()})
+    return True
+
+
+def set_status(session: Session, key: str, status: str, error: str | None = None) -> None:
+    """The cut editor finished (or dropped) a request held in review."""
+    entry = next((e for e in entries(session) if e.get("key") == key), None)
+    if entry:
+        _save(session, {**entry, "status": status, "error": error, "at": datetime.now(UTC).isoformat()})

@@ -167,10 +167,14 @@ def start_projects(body: dict, session: Session = Depends(get_session)):
 
 @router.get("/links")
 def link_jobs(session: Session = Depends(get_session)):
-    """Recent /fabrica/novo link downloads: [{key, title, project_ids, status: held|working|ok|error, error, at}]."""
+    """Recent /fabrica/novo link downloads: [{key, title, project_ids, status: held|working|review|ok|error, error,
+    at, n_links, progress}]; progress = the step while working (cvm/lives/progress.py: download, then the cut
+    analysis of a "Melhores momentos" link)."""
     from cvm import media_links
+    from cvm.lives import progress
 
-    return [{**{k: v for k, v in e.items() if k != "links"}, "n_links": len(e.get("links") or [])}
+    return [{**{k: v for k, v in e.items() if k != "links"}, "n_links": len(e.get("links") or []),
+             "progress": progress.get(session, progress.fabrica_key(e["key"])) if e.get("status") == "working" else None}
             for e in media_links.entries(session)]
 
 

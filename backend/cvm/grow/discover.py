@@ -21,6 +21,7 @@ from urllib.parse import quote_plus
 
 from cvm import private
 from cvm.config import settings
+from cvm.lives import platforms
 
 log = logging.getLogger(__name__)
 
@@ -130,13 +131,20 @@ def download(url: str, dest_dir: Path) -> Path:
     out = dest_dir / f"yt_{vid}.mp4"
     if out.exists():
         return out
+    from cvm.lives.progress import ytdlp_run  # "Baixando N%" for the cut editor's prep steps
+
     last = ""
     for client in ("default", "mweb", "web_safari", "ios"):
         extra = [] if client == "default" else ["--extractor-args", f"youtube:player_client={client}"]
-        r = subprocess.run([*_yt_dlp(), *extra, "-f", "bv*[height<=1080]+ba/b[height<=1080]/b", "--merge-output-format", "mp4",
-                            "-o", str(dest_dir / f"yt_{vid}.%(ext)s"), url], capture_output=True, text=True, timeout=3600)
+        r = ytdlp_run([*_yt_dlp(), *extra, "-f", "bv*[height<=1080]+ba/b[height<=1080]/b", "--merge-output-format", "mp4",
+                       "-o", str(dest_dir / f"yt_{vid}.%(ext)s"), url], timeout=3600)
         if out.exists():
             return out
+        if login := platforms.login_args(r.stderr or ""):  # age-restricted / login wall: once with the user's login
+            ytdlp_run([*_yt_dlp(), *login, *extra, "-f", "bv*[height<=1080]+ba/b[height<=1080]/b",
+                       "--merge-output-format", "mp4", "-o", str(dest_dir / f"yt_{vid}.%(ext)s"), url], timeout=3600)
+            if out.exists():
+                return out
         last = (r.stderr or "")[-300:]
     raise RuntimeError(f"não consegui baixar o vídeo: {last}")
 

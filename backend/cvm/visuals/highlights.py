@@ -191,9 +191,13 @@ def analyse(paths: list[Path], durations: list[float]) -> list[dict]:
         if whole:
             segs[0]["score"] = round(float(score.mean()), 2)
         moments = _windows(np.where(good, score, -np.inf), dur)
-        results.append({"segments": segs, "whole": whole, "moments": moments,
+        # per-second tracks for the cut editor and the viral detection (cvm/lives/signals.py): loudness in LUFS,
+        # motion as the scene score, action as this file's mixed score
+        tracks = {"loudness": [round(float(v), 1) for v in loud], "motion": [round(float(v), 3) for v in motion],
+                  "action": [round(float(v), 2) for v in score]}
+        results.append({"segments": segs, "whole": whole, "moments": moments, "tracks": tracks,
                         "dropped": {"dull": int((~good & ~repeat).sum()), "repeat": int(repeat.sum())}})
-        log.info("highlights %s: %s", path.name, results[-1])
+        log.info("highlights %s: %s", path.name, {k: v for k, v in results[-1].items() if k != "tracks"})
     return results
 
 

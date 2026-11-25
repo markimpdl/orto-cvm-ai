@@ -337,8 +337,11 @@ def _sticker_style(project) -> dict | None:
 
 def make_thumbnails(project, script_content: dict, language: str, fallback_clip: Path, out_dir: Path, landscape: bool,
                     variants: bool, kids: bool = False, scene_media: dict | None = None,
-                    presenter: bool = True) -> list[Path]:
-    """presenter False: no avatar cut-out (news-desk editorial videos show no presenter). scene_media: {scene index: image/video of that scene}; packaging.thumbnail_scene picks one as the background
+                    presenter: bool = True, background_image: Path | None = None) -> list[Path]:
+    """presenter False: no avatar cut-out — the caller passes True only when the video shows the presenter (owner,
+    2026-11-25: no avatar on the cover unless he asked for the avatar). background_image: the video's own picture
+    (a Short's first scene, or the streamer's reaction) used as it is: no AI background, no scene pick.
+    scene_media: {scene index: image/video of that scene}; packaging.thumbnail_scene picks one as the background
     (kids series keep their own characters; checked by the kids_thumbnail rule), else the FLUX prompt, else the
     video's first frame."""
     from cvm.scripting.schema import fit_thumbnail_text
@@ -347,6 +350,8 @@ def make_thumbnails(project, script_content: dict, language: str, fallback_clip:
     scene_bg = (scene_media or {}).get(pkg.get("thumbnail_scene"))
     if kids and scene_media:
         scene_bg = kids_scene(pkg, scene_media, pkg.get("title")) or scene_bg
+    if background_image and Path(background_image).exists():
+        scene_bg = background_image
     if scene_bg and Path(scene_bg).exists():
         fallback_clip, pkg = Path(scene_bg), {**pkg, "thumbnail_prompt": None}
     scenes = script_content.get("scenes") or []

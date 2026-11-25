@@ -36,16 +36,65 @@ def _pcm16k(audio: Path):
     return np.frombuffer(raw, dtype="float32")
 
 
-def transcribe(audio: Path, language: str, words: bool = False) -> dict:
-    """{"text", "words": [{"w", "s", "e"}]} (words only when asked) — mlx-whisper on the Mac, Whisper on CUDA elsewhere."""
+class _ProgressBar:
+    """Stands in for tqdm.tqdm inside mlx_whisper.transcribe: its frame counter (100 frames = 1 s of audio) goes to
+    `on_progress(done_s, total_s)` instead of the terminal."""
+
+    def __init__(self, on_progress, total=None, **_):
+        self.on_progress, self.total, self.n = on_progress, float(total or 0), 0.0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def update(self, n=1):
+        self.n += n
+        try:
+            self.on_progress(self.n / 100.0, self.total / 100.0)
+        except Exception:  # noqa: BLE001 — progress never breaks the transcript
+            pass
+
+
+def _mlx_progress(on_progress):
+    """(verbose, context manager) for mlx_whisper.transcribe: with a callback, its tqdm bar is swapped for
+    _ProgressBar while the call runs (inside _WHISPER_LOCK, so no other transcript sees the swap)."""
+    import contextlib
+    import sys
+    import types
+
+    if on_progress is None:
+        return None, contextlib.nullcontext()
+    mod = sys.modules.get("mlx_whisper.transcribe")
+    if mod is None or not hasattr(mod, "tqdm"):
+        return None, contextlib.nullcontext()
+
+    @contextlib.contextmanager
+    def swap():
+        real = mod.tqdm
+        mod.tqdm = types.SimpleNamespace(tqdm=lambda *a, **k: _ProgressBar(on_progress, **k))
+        try:
+            yield
+        finally:
+            mod.tqdm = real
+    return False, swap()
+
+
+def transcribe(audio: Path, language: str, words: bool = False, on_progress=None) -> dict:
+    """{"text", "words": [{"w", "s", "e"}]} (words only when asked) — mlx-whisper on the Mac, Whisper on CUDA elsewhere.
+    on_progress(done_s, total_s): how much of the audio is done (mlx-whisper only; the CUDA pipeline has no hook)."""
     from cvm.models_registry import MLX, repo
 
     if MLX:
         import mlx_whisper
 
         with _WHISPER_LOCK:
-            res = mlx_whisper.transcribe(str(audio), path_or_hf_repo=repo("whisper"), word_timestamps=words,
-                                         language=WHISPER_LANG[language], condition_on_previous_text=words)
+            verbose, bar = _mlx_progress(on_progress)
+            with bar:
+                res = mlx_whisper.transcribe(str(audio), path_or_hf_repo=repo("whisper"), word_timestamps=words,
+                                             language=WHISPER_LANG[language], condition_on_previous_text=words,
+                                             verbose=verbose)
         ws = [{"w": w["word"].strip(), "s": w["start"], "e": w["end"]} for seg in res["segments"] for w in seg.get("words", [])]
         return {"text": res.get("text", "").strip(), "words": ws}
     res = _whisper_cuda()({"raw": _pcm16k(audio), "sampling_rate": 16000}, chunk_length_s=30, batch_size=4,

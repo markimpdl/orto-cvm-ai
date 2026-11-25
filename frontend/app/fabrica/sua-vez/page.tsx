@@ -18,7 +18,7 @@ const KIND: Record<string, [string, string]> = {
 };
 
 export default function InboxPage() {
-  const { projects, channelOf, loaded } = useAppData();
+  const { projects, cutReviews, channelOf, loaded } = useAppData();
   const { t } = useT();
   const order = ["approve", "review", "manual", "failed"];
   const [f, setF, clearF] = useFilters("sua-vez");
@@ -32,8 +32,18 @@ export default function InboxPage() {
     <>
       <PageHeader title={t("Sua vez")} subtitle={t("Só o que precisa de uma decisão sua. O resto da fila segue andando.")} />
       {all.length > 1 && <FilterBar defs={defs} f={f} set={setF} clear={clearF} shown={todo.length} total={all.length} />}
-      {todo.length ? (
+      {todo.length || cutReviews.length ? (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-3">
+          {cutReviews.map((r) => (
+            <article key={`cuts-${r.id}`} className="card flex flex-col gap-3 p-5">
+              <div className="text-[13px] font-semibold tracking-[0.6px] text-alert-text uppercase">{t("Cortes para revisar")}</div>
+              <h3 className="m-0 text-lg leading-[1.3] font-semibold">{r.title}</h3>
+              <p className="m-0 text-sm text-muted">
+                {`${channelOf(r.channel_id)?.name ?? t("sem canal")} · ${t("{n} propostos, {s} sugeridos", { n: r.counts.suggested + r.counts.proposed + r.counts.approved + r.counts.discarded, s: r.counts.suggested })}`}
+              </p>
+              <Link href={`/fabrica/cortes/${r.id}`} className="btn btn-ink mt-auto self-start">{t("Revisar cortes")}</Link>
+            </article>
+          ))}
           {todo.map((p) => {
             const ph = phaseOf(p.job);
             const [kind, cta] = KIND[ph];

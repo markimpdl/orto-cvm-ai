@@ -260,7 +260,17 @@ export const decideTitlePattern = (id: number, decision: "approve" | "reject") =
 
 /** Menu "Crescer" (backend cvm/api/grow.py): lives → melhores momentos + Shorts, and the monetization numbers. */
 export type LivePackage = { long: number | null; shorts: number[]; moments: { start: number; end: number }[]; method?: "viral" | "volume" };
-export type LiveItem = { video_id: string; title: string; url: string | null; own?: boolean; uploader?: string | null; status: "working" | "ok" | "error" | "waiting"; error: string | null; package?: LivePackage; at: string };
+export type LiveItem = { video_id: string; title: string; url: string | null; own?: boolean; uploader?: string | null; status: "working" | "review" | "ok" | "error" | "waiting"; error: string | null; package?: LivePackage; review?: number; at: string; progress?: PrepProgress | null };
+/** Where a download/cut analysis is now (backend cvm/lives/progress.py). */
+export type PrepProgress = {
+  step: "queued" | "download" | "proxy" | "transcript" | "signals" | "ai" | "ready" | string; label: string;
+  pct: number | null; done?: number | null; total?: number | null; since?: string | null; at?: string | null; waiting?: boolean;
+};
+export type PrepItem = {
+  key: string; kind: "download" | "review"; title: string; channel_id: number | null; status: "working" | "analysing" | "review" | "error";
+  review_id: number | null; progress: PrepProgress | null; error: string | null;
+};
+export const getPrep = () => api<{ items: PrepItem[] }>("/cuts/prep");
 export type LivesStatus = { items: LiveItem[] };
 export type Monetization = {
   hours_target: number; subs_target: number; deadline: string; hours: number | null; subs: number | null;
@@ -270,6 +280,9 @@ export type Monetization = {
   vidiq_sync?: { running: boolean; error: string | null; credits: number; available: boolean };
 };
 export const getLives = (channelId: number) => api<LivesStatus>(`/grow/${channelId}/lives`);
+/** "Excluir" a sent video: item, cut review and its files; 409 (detail in pt-BR) while a cut made from it is still in production. */
+export const deleteLive = (channelId: number, videoId: string) =>
+  api<{ deleted: string; freed: number; files: number }>(`/grow/${channelId}/lives?${new URLSearchParams({ video_id: videoId })}`, { method: "DELETE" });
 export const sendLiveLink = (channelId: number, url: string, title: string) =>
   api<{ started: boolean; video_id: string }>(`/grow/${channelId}/lives/link`, { method: "POST", body: JSON.stringify({ url, title: title || null }) });
 export const getMonetization = (channelId: number) => api<Monetization>(`/grow/${channelId}/monetization`);
@@ -374,3 +387,46 @@ export function apiDetail(e: unknown): string {
     return m[1];
   }
 }
+
+
+/** Cut editor (backend cvm/lives/cuts.py, /cuts API). */
+export type CutStatus = "suggested" | "proposed" | "approved" | "discarded";
+export type Cut = {
+  id: string; origin: "ai" | "owner"; start: number; end: number; status: CutStatus; hook: string; why: string;
+  scores: Partial<Record<"hook" | "payoff" | "emotion" | "standalone" | "trend", number>>; score: number | null;
+  rank: number | null; tags: string; comment: string; commentary: boolean; warnings?: string[];
+};
+export type CutReviewSummary = {
+  id: number; channel_id: number | null; title: string; status: "analysing" | "review" | "producing" | "done" | "dismissed" | "error";
+  kind: "shorts" | "segments"; source: "lives" | "fabrica"; method: "viral" | "volume" | null; duration: number; error: string | null;
+  url: string | null; own: boolean; uploader: string | null; counts: Record<CutStatus, number>;
+  options: {
+    make_long?: boolean; commentary?: boolean; project_ids?: number[];
+    facecam?: CutFacecam | null; facecam_order?: CutOrder; facecam_off?: boolean;
+  };
+  result: { long?: number | null; shorts?: number[]; projects?: number[] }; created_at: string | null; updated_at: string | null;
+  progress?: PrepProgress | null;
+};
+export type CutReviewDetail = CutReviewSummary & {
+  cuts: Cut[]; tracks: Partial<Record<"chat" | "replay" | "comments" | "reactions", number[]>>;
+  transcript: { s: number; e: number; text: string }[]; waveform: { step: number; peaks: number[] }; has_proxy: boolean;
+};
+export const getCutReviews = (status?: string, channelId?: number) =>
+  api<{ items: CutReviewSummary[] }>(`/cuts?${new URLSearchParams({ ...(status ? { status } : {}), ...(channelId ? { channel_id: String(channelId) } : {}) })}`);
+export const getCutReview = (id: number) => api<CutReviewDetail>(`/cuts/${id}`);
+export const cutVideoUrl = (id: number) => `${API}/cuts/${id}/video`;
+export const saveCuts = (id: number, cuts: Cut[]) => api<CutReviewDetail>(`/cuts/${id}/cuts`, { method: "PUT", body: JSON.stringify({ cuts }) });
+export const produceCuts = (id: number, makeLong?: boolean) =>
+  api<CutReviewSummary>(`/cuts/${id}/produce`, { method: "POST", body: JSON.stringify({ make_long: makeLong ?? null }) });
+export const dismissCuts = (id: number) => api<CutReviewSummary>(`/cuts/${id}/dismiss`, { method: "POST" });
+/** The streamer's camera box (fractions of the frame) for the 3-panel Shorts (backend cvm/render/stack.py). */
+export type CutFacecam = { x: number; y: number; w: number; h: number; auto?: boolean; from?: "channel" };
+export type CutOrder = "youtuber_top" | "header_top";
+export const saveCutLayout = (id: number, body: { facecam?: { x: number; y: number; w: number; h: number } | null; order?: CutOrder; enabled?: boolean }) =>
+  api<CutReviewSummary>(`/cuts/${id}/layout`, { method: "PUT", body: JSON.stringify(body) });
+export const relayoutProject = (projectId: number) =>
+  api<{ project: number; state: string | null }>(`/cuts/projects/${projectId}/relayout`, { method: "POST", body: "{}" });
+export type CutSettings = { auto_approve_cuts: boolean; shorts_commentary: boolean };
+export const getCutSettings = (channelId: number) => api<CutSettings>(`/cuts/channels/${channelId}/settings`);
+export const putCutSettings = (channelId: number, body: Partial<CutSettings>) =>
+  api<CutSettings>(`/cuts/channels/${channelId}/settings`, { method: "PUT", body: JSON.stringify(body) });

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from cvm.api import avatars, channels, jobs, media, projects, publish, trends
 from cvm.api import settings as settings_api
+from cvm.api import cuts as cuts_api
 from cvm.api import em_alta, grow
 from cvm.api import setup as setup_api
 from cvm.api import stats as stats_api
@@ -33,6 +34,7 @@ for router in (avatars.router, channels.router, trends.router, projects.router, 
 app.include_router(stats_api.router)  # YouTube Analytics + weekly cycle (Phase 8)
 app.include_router(setup_api.router)  # install wizard state
 app.include_router(grow.router)  # menu "Crescer": lives → melhores momentos + Shorts, monetization
+app.include_router(cuts_api.router)  # cut editor: the owner reviews the proposed cuts before any Short is made
 
 
 @app.get("/health")

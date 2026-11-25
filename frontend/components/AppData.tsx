@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { api, type Avatar, type Channel, type Project } from "@/lib/api";
+import { api, getCutReviews, type Avatar, type Channel, type CutReviewSummary, type Project } from "@/lib/api";
 import { useDurations, type Durations } from "@/lib/pipeline";
 
 type Toast = { msg: string; link?: { href: string; label: string } } | null;
@@ -10,6 +10,8 @@ type AppData = {
   projects: Project[];
   /** Publications ready to post now (same rule as the Publish page's "ready" list), for the sidebar badge. */
   publishDue: number;
+  /** Cut editor reviews waiting for the owner (status "review"): shown in Sua vez and its sidebar count. */
+  cutReviews: CutReviewSummary[];
   channels: Channel[];
   /** GET /channels has answered at least once (an empty list then means no channels yet). */
   channelsLoaded: boolean;
@@ -34,6 +36,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [channelsLoaded, setChannelsLoaded] = useState(false);
   const [publishDue, setPublishDue] = useState(0);
+  const [cutReviews, setCutReviews] = useState<CutReviewSummary[]>([]);
   const [toast, setToast] = useState<Toast>(null);
   const durations = useDurations();
 
@@ -56,6 +59,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     api<{ count: number; total?: number }>(`/publications/due?until=${encodeURIComponent(end.toISOString())}`)
       .then((r) => setPublishDue(r.total ?? r.count)) // everything waiting on /publicar, not only today's
       .catch(() => {});
+    getCutReviews("review").then((r) => setCutReviews(r.items)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -69,11 +73,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AppData>(
     () => ({
-      projects, publishDue, channels, channelsLoaded, avatars, durations, loaded, reload, reloadSetup, toast, setToast,
+      projects, publishDue, cutReviews, channels, channelsLoaded, avatars, durations, loaded, reload, reloadSetup, toast, setToast,
       channelOf: (id) => channels.find((c) => c.id === id),
       avatarOf: (id) => avatars.find((a) => a.id === id),
     }),
-    [projects, publishDue, channels, channelsLoaded, avatars, durations, loaded, reload, reloadSetup, toast],
+    [projects, publishDue, cutReviews, channels, channelsLoaded, avatars, durations, loaded, reload, reloadSetup, toast],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { useAppData } from "@/components/AppData";
 import { PageHeader } from "@/components/Bits";
 import { FilterBar, projectFilters, projectMatches, useFilters } from "@/components/Filters";
+import { PrepBar, PrepList, usePrep } from "@/components/PrepProgress";
 import QueueItem from "@/components/QueueItem";
-import { api } from "@/lib/api";
+import { api, type PrepProgress } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { groupOf, type Group } from "@/lib/pipeline";
 
@@ -16,7 +17,7 @@ const GROUPS: { k: Group; title: string; dot: string }[] = [
   { k: "done", title: "Agendados", dot: "bg-go" },
 ];
 
-type LinkJob = { key: string; title: string; project_ids: number[]; status: "held" | "working" | "ok" | "error"; error: string | null; at: string | null; n_links: number };
+type LinkJob = { key: string; title: string; project_ids: number[]; status: "held" | "working" | "review" | "ok" | "error"; error: string | null; at: string | null; n_links: number; progress?: PrepProgress | null };
 
 /** Videos whose links are still downloading (/fabrica/novo with links): the project has no job yet, so it would be
  *  missing from every group until the downloads end. Failed ones stay a day so the error is seen. */
@@ -51,9 +52,28 @@ function LinkDownloads() {
             <span className="text-[15px] font-semibold">{e.title}</span>
             {e.status === "error"
               ? <span className="text-[13px] text-alert-text">{t("O download falhou e o vídeo não foi criado:")} {e.error}</span>
-              : <span className="text-[13px] text-muted">{e.n_links === 1 ? t("Baixando 1 link. Entra na fila sozinho quando terminar.") : t("Baixando {n} links. Entra na fila sozinho quando terminarem.", { n: e.n_links })}</span>}
+              : e.progress ? <PrepBar p={e.progress} /> : <span className="text-[13px] text-muted">{e.n_links === 1 ? t("Baixando 1 link. Entra na fila sozinho quando terminar.") : t("Baixando {n} links. Entra na fila sozinho quando terminarem.", { n: e.n_links })}</span>}
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+/** Crescer links/uploads before the cut editor (download → light copy → transcript → signals → AI), any channel. */
+function CutAnalyses() {
+  const { t } = useT();
+  const items = usePrep();
+  if (!items.length) return null;
+  const running = items.filter((i) => i.status === "working" || i.status === "analysing").length;
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="h2 m-0 flex items-center gap-2.5">
+        <span className={`h-2.5 w-2.5 rounded-full ${running ? "bg-ink" : "bg-go"}`} />
+        {t("Analisando cortes")} <span className="font-sans text-[15px] font-medium text-muted">({items.length})</span>
+      </h2>
+      <div className="card overflow-hidden">
+        <PrepList items={items} />
       </div>
     </section>
   );
@@ -99,6 +119,7 @@ export default function QueuePage() {
       </PageHeader>
       {queued.length > 1 && <FilterBar defs={defs} f={f} set={setF} clear={clearF} shown={shown.length} total={queued.length} />}
       <LinkDownloads />
+      <CutAnalyses />
       {GROUPS.filter((g) => n(g.k)).map((g) => (
         <section key={g.k} className="flex flex-col gap-3">
           <h2 className="h2 m-0 flex items-center gap-2.5">

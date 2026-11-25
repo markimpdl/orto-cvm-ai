@@ -103,6 +103,10 @@ class Settings(BaseSettings):
     # (service "cvm-twitch"). Never stored in the DB, logged or returned.
     twitch_client_id: str | None = None
     twitch_client_secret: str | None = None
+    # Login for yt-dlp when a site refuses without one (YouTube age-restricted videos, login walls): a browser name
+    # ("chrome", "safari", "firefox", "chrome:Profile 2") read with --cookies-from-browser, or a cookies.txt path.
+    # Used only on the retry after such a refusal (cvm/lives/platforms.login_retry); public videos never send it.
+    ytdlp_cookies: str | None = None
 
     # Codex CLI (ChatGPT subscription, never an API key): writer while Claude is at its usage limit
     # (cvm/scripting/agents.py). codex_model: None = the CLI's own default/config.

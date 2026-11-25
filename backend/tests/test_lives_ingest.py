@@ -49,3 +49,34 @@ def test_attach_file_keeps_audio_when_asked(tmp_path, monkeypatch):
     assert a.kind == "user_media"
     assert a.meta["keep_audio"] is True
     assert abs(a.meta["duration"] - 2.0) < 0.3
+
+
+def test_probe_retries_once_with_login_when_age_restricted(monkeypatch):
+    from types import SimpleNamespace
+
+    from cvm.config import settings
+
+    monkeypatch.setattr(settings, "ytdlp_cookies", "chrome")
+    calls = []
+
+    def run(cmd, **kw):
+        calls.append(cmd)
+        if "--cookies-from-browser" in cmd:
+            return SimpleNamespace(returncode=0, stdout='{"id": "abc12345678", "title": "T", "duration": 60}', stderr="")
+        return SimpleNamespace(returncode=1, stdout="", stderr="ERROR: Sign in to confirm your age.")
+
+    info = ingest.probe("https://www.youtube.com/watch?v=abc12345678", run=run)
+    assert info["video_id"] == "abc12345678"
+    assert len(calls) == 2 and calls[1][1:3] == ["--cookies-from-browser", "chrome"]
+    assert "--cookies-from-browser" not in calls[0]
+
+
+def test_no_login_retry_without_setting_or_for_other_errors(monkeypatch):
+    from cvm.config import settings
+    from cvm.lives import platforms
+
+    monkeypatch.setattr(settings, "ytdlp_cookies", None)
+    assert platforms.login_args("Sign in to confirm your age") == []
+    monkeypatch.setattr(settings, "ytdlp_cookies", "chrome")
+    assert platforms.login_args("HTTP Error 404: Not Found") == []
+    assert platforms.login_args("This video is age-restricted") == ["--cookies-from-browser", "chrome"]

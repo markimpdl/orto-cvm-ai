@@ -45,6 +45,20 @@ def _no_real_claude(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
+def _no_real_whole_video_whisper(monkeypatch):
+    """The cut detection transcribes a whole video (cvm/lives/signals.transcript): never with the real whisper in
+    tests (minutes, GBs of RAM). A test that wants it passes its own `transcribe`; else there is no speech."""
+    from cvm.lives import signals
+
+    real = signals.transcript
+
+    def transcript(video, language, transcribe=None):
+        return real(video, language, transcribe=transcribe) if transcribe is not None else []
+
+    monkeypatch.setattr(signals, "transcript", transcript)
+
+
+@pytest.fixture(autouse=True)
 def _no_real_codex(monkeypatch):
     """Nor a real `codex exec` (ChatGPT subscription): light calls may fall back to Codex at Claude's limit.
     Tests of run_codex's argv fake subprocess.Popen and patch this back."""

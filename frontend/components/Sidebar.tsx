@@ -166,12 +166,12 @@ export default function Sidebar() {
   const path = usePathname();
   const { t } = useT();
   const features = useFeatures();
-  const { projects, publishDue } = useAppData();
+  const { projects, publishDue, cutReviews } = useAppData();
   const groups = projects.map((p) => groupOf(p.job));
   const factory = [
     { href: "/fabrica", label: t("Produção"), count: groups.filter((g) => g === "run" || g === "wait").length, red: false, match: (p: string) => p === "/fabrica" || p.startsWith("/projetos") },
     { href: "/fabrica/novo", label: t("Novo vídeo"), count: 0, red: false, match: (p: string) => p.startsWith("/fabrica/novo") },
-    { href: "/fabrica/sua-vez", label: t("Sua vez"), count: groups.filter((g) => g === "you").length, red: true, match: (p: string) => p.startsWith("/fabrica/sua-vez") },
+    { href: "/fabrica/sua-vez", label: t("Sua vez"), count: groups.filter((g) => g === "you").length + cutReviews.length, red: true, match: (p: string) => p.startsWith("/fabrica/sua-vez") },
     { href: "/fabrica/publicar", label: t("Publicar"), count: publishDue, red: false, match: (p: string) => p.startsWith("/fabrica/publicar") },
     { href: "/fabrica/historico", label: t("Histórico"), count: 0, red: false, match: (p: string) => p.startsWith("/fabrica/historico") },
     { href: "/fabrica/series", label: t("Séries"), count: 0, red: false, match: (p: string) => p.startsWith("/fabrica/series") },

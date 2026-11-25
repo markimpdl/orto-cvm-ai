@@ -21,6 +21,7 @@ from sqlmodel import Session, select
 from cvm.config import REPO_ROOT, settings
 from cvm.db import engine
 from cvm.models import Avatar, Channel, Platform, Setting
+from cvm.setup.detach import detached
 
 log = logging.getLogger(__name__)
 
@@ -274,7 +275,7 @@ def start_bumper(session: Session, channel: Channel, prompt: str | None) -> dict
         with logf.open("w") as fh:  # the child keeps its own copy of the handle
             proc = subprocess.Popen([sys.executable, "-m", "cvm.setup.channel", "bumper", str(channel.id)],
                                     cwd=REPO_ROOT / "backend", stdout=fh, stderr=subprocess.STDOUT,
-                                    start_new_session=True)
+                                    **detached())
     except OSError as e:
         _write(session, channel.id, {**_read(session, channel.id), "state": "failed",
                                      "error": f"não deu para iniciar a vinheta: {e}"})

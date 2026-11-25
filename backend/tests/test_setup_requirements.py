@@ -29,9 +29,41 @@ def test_windows_avatar_pending_until_1b():
     assert [x.feature for x in check(["base", "avatar"], win)] == ["avatar"]
 
 
+def test_windows_video_features_say_they_need_24gb_and_are_not_there_yet():
+    win = Hardware("windows", "RTX 5060", 32, 8, 900)
+    got = {b.feature: b.reason for b in check(["avatar", "animation", "kids"], win)}
+    assert set(got) == {"avatar", "animation", "kids"}
+    for reason in got.values():
+        assert "24 GB" in reason and "ainda não está disponível no Windows" in reason
+
+
 def test_windows_gate_needs_vram():
-    assert gate(Hardware("windows", "RTX 3060", 32, 8, 500)).feature == "base"
+    assert gate(Hardware("windows", "GTX 1660", 32, 6, 500)).feature == "base"
+    assert gate(Hardware("windows", "RTX 5060", 32, 8, 500)) is None  # the owner's 8 GB card
     assert gate(Hardware("windows", "RTX 4070", 32, 12, 500)) is None
+
+
+def test_windows_base_row_numbers():
+    from cvm.setup.requirements import FEATURES
+    win, mac = FEATURES["base"].windows, FEATURES["base"].mac
+    assert (win.ram_gb, win.vram_gb, win.disk_gb) == (32, 8, 25)
+    assert (mac.ram_gb, mac.vram_gb, mac.disk_gb) == (32, 0, 15)  # Mac row unchanged
+
+
+def test_windows_ram_rounded_to_whole_gb(monkeypatch):
+    # a 32 GB PC reports ~31.8 GB to Windows (hardware-reserved memory); it must pass the 32 GB gate
+    import sys
+    import types
+
+    import cvm.setup.requirements as r
+    monkeypatch.setattr(r.sys, "platform", "win32")
+    monkeypatch.setattr(r.shutil, "which", lambda _n: "nvidia-smi")
+    monkeypatch.setattr(r, "_run", lambda _c: "NVIDIA GeForce RTX 5060, 8151")
+    fake = types.SimpleNamespace(virtual_memory=lambda: types.SimpleNamespace(total=int(31.8 * 1024**3)))
+    monkeypatch.setitem(sys.modules, "psutil", fake)
+    hw = detect()
+    assert (hw.chip, hw.ram_gb, hw.vram_gb) == ("NVIDIA GeForce RTX 5060", 32, 8.0)
+    assert gate(hw) is None
 
 
 def test_detect_never_crashes(monkeypatch):

@@ -6,8 +6,9 @@ status() = {"current", "latest", "available", "skipped"}: current = `git describ
 highest vX.Y from `git ls-remote --tags origin` (cached 1 h, dropped when a run finishes). A tag that failed here and was
 rolled back (Setting "update_failed") is not offered again ("skipped") until a newer tag appears. start() spawns `python -m cvm.setup.update run` detached (it
 outlives the API it restarts); run() goes through the queue the way the safe restart does: pause-all, wait until no
-job is mid-step, then fetch + checkout <latest>, `uv sync`, `npm install`, `scripts/install/mac.sh restart` (this
-folder's API/worker/UI only), and resume exactly the jobs it paused. Any failure checks the previous version out
+job is mid-step, then fetch + checkout <latest>, `uv sync`, `npm install`, `scripts/install/mac.sh restart` (Windows: `windows.ps1
+stop` before the sync, since running programs lock the .venv, then `windows.ps1 restart`; this folder's API/worker/UI
+only), and resume exactly the jobs it paused. Any failure checks the previous version out
 again, re-syncs, restarts and leaves state "failed" with the error in pt-BR. State in Setting "update".
 """
 
@@ -24,6 +25,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from cvm.config import REPO_ROOT, settings
+from cvm.setup.detach import detached, no_window
 
 ROOT: Path = REPO_ROOT
 KEY = "update"
@@ -214,9 +216,11 @@ def _sh(cmd: list[str], cwd: Path) -> None:
     print("→", " ".join(cmd), f"({cwd})", flush=True)
     env = {**os.environ, "CVM_NO_OPEN": "1"}
     env.pop("VIRTUAL_ENV", None)  # uv sync must use the folder's own .venv
-    r = subprocess.run(cmd, cwd=cwd, env=env)
+    r = subprocess.run(cmd, cwd=cwd, env=env, **no_window())
     if r.returncode != 0:
-        shown = " ".join(Path(w).name if os.sep in w else w for w in cmd[:3])  # no install path in the app's message
+        # no install path in the app's message, no flags: "bash mac.sh restart", "powershell windows.ps1 restart"
+        words = [cmd[0], *cmd[-2:]] if cmd[0] == "powershell" else [w for w in cmd if not w.startswith("-")][:3]
+        shown = " ".join(re.split(r"[\\/]", w)[-1] for w in words)
         raise StepFailed(f"o comando “{shown}” falhou (código {r.returncode}); veja data/logs/update.log")
 
 
@@ -250,13 +254,47 @@ def _resume(projects: list[int]) -> None:
             _api("POST", f"/jobs/{j['id']}/pause", {"paused": False})
 
 
+def supported() -> bool:
+    """Systems with an installer script that can restart this folder's services."""
+    return sys.platform in ("darwin", "win32")
+
+
+def _installer(action: str) -> list[str]:
+    """The installer of this system with a subcommand (restart / stop), for THIS folder's API, worker and UI."""
+    if sys.platform == "win32":
+        return ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                str(ROOT / "scripts" / "install" / "windows.ps1"), action]
+    return ["bash", str(ROOT / "scripts" / "install" / "mac.sh"), action]
+
+
+def _installer_name() -> str:
+    return "INSTALAR.bat" if sys.platform == "win32" else "INSTALAR.command"
+
+
 def _restart() -> None:
-    _sh(["bash", str(ROOT / "scripts" / "install" / "mac.sh"), "restart"], ROOT)
+    _sh(_installer("restart"), ROOT)
+
+
+def _stop_for_sync() -> None:
+    """Windows locks the files a running program uses: uv sync cannot replace the .venv while the API and the worker
+    run from it, so they stop first (the restart after the sync starts them again). The Mac syncs under them."""
+    if sys.platform == "win32":
+        _sh(_installer("stop"), ROOT)
+
+
+def _exe(name: str) -> str:
+    """Windows runs npm as npm.cmd, which CreateProcess finds only by its full name."""
+    if sys.platform == "win32":
+        import shutil
+
+        return shutil.which(name) or name
+    return name
 
 
 def _sync() -> None:
-    _sh(["uv", "sync"], ROOT / "backend")
-    _sh(["npm", "install", "--no-audit", "--no-fund"], ROOT / "frontend")
+    _stop_for_sync()
+    _sh([_exe("uv"), "sync"], ROOT / "backend")
+    _sh([_exe("npm"), "install", "--no-audit", "--no-fund"], ROOT / "frontend")
     # npm/uv may rewrite their lock files; the tree was clean before, so put them back (the next update checks it)
     _git("checkout", "-q", "--", ".", check=False)
 
@@ -265,7 +303,7 @@ def _sync() -> None:
 
 def check_can_start() -> None:
     """Raises ValueError (pt-BR) when an update cannot start now."""
-    if sys.platform != "darwin":
+    if not supported():
         raise ValueError("A atualização pelo app ainda não é suportada neste sistema. Use o git na pasta do CVM.")
     if not public_install():
         raise ValueError("Esta pasta não veio do repositório público do CVM.")
@@ -295,7 +333,7 @@ def start() -> None:
         log = settings.data_dir / "logs" / "update.log"
         log.parent.mkdir(parents=True, exist_ok=True)
         _PROC = subprocess.Popen([sys.executable, "-m", "cvm.setup.update", "run"], cwd=ROOT / "backend",
-                                 stdout=log.open("w"), stderr=subprocess.STDOUT, start_new_session=True)
+                                 stdout=log.open("w"), stderr=subprocess.STDOUT, **detached())
         _save({"state": "running", "pid": _PROC.pid, "step": "starting", "label": "Começando a atualização",
                "started_at": _now()})
 
@@ -368,7 +406,7 @@ def run() -> int:
                     error += f" O CVM voltou para a versão {previous}."
                 except Exception as e2:  # noqa: BLE001
                     error += (f" Também não deu para voltar para a versão {previous} ({e2}). Abra a pasta do CVM e "
-                              f"rode INSTALAR.command de novo.")
+                              f"rode {_installer_name()} de novo.")
             st.update(state="failed", error=error)
             print(error, flush=True)
     finally:  # releases the hold, whatever happened (an interrupted run included)

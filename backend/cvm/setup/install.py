@@ -25,6 +25,7 @@ from typing import Literal
 from cvm import models_registry
 from cvm.config import REPO_ROOT, settings
 from cvm.setup import tools
+from cvm.setup.detach import detached
 from cvm.setup.requirements import FEATURES, LTX_PACK_GB, _expand
 
 KEY = "setup_install"
@@ -321,7 +322,7 @@ def start(features: list[str]) -> None:
         log.parent.mkdir(parents=True, exist_ok=True)
         _PROC = subprocess.Popen([sys.executable, "-m", "cvm.setup.install", "run", *features],
                                  cwd=REPO_ROOT / "backend", stdout=log.open("w"), stderr=subprocess.STDOUT,
-                                 start_new_session=True)
+                                 **detached())
         # the child rewrites this lease with the same pid as it goes
         _save({"pid": _PROC.pid, "features": list(features), "items": [asdict(i) for i in items], "at": _now()})
 

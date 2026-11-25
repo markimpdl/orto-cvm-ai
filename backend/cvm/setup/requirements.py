@@ -34,7 +34,7 @@ class Need:
     tools: list[str] = field(default_factory=list)
     models: list[str] = field(default_factory=list)
     shared: list[str] = field(default_factory=list)  # components counted once across features (SHARED_GB)
-    pending_1b: bool = False  # Windows install of this feature is filled in by part 1B
+    pending_1b: bool = False  # not on Windows yet (part 1B): the wizard says it needs a 24 GB card
 
 
 @dataclass
@@ -88,10 +88,12 @@ def detect() -> Hardware:
         ram = 0.0
         try:
             import psutil
-            ram = psutil.virtual_memory().total / 1024**3
+            # whole GB: Windows reports the installed RAM minus what the hardware reserves (32 GB → ~31.8), and
+            # scripts/install/windows.ps1 rounds the same way, so both gates agree
+            ram = float(round(psutil.virtual_memory().total / 1024**3))
         except Exception:
             pass
-        return Hardware("windows", chip, round(ram, 1), round(vram, 1), disk)
+        return Hardware("windows", chip, ram, round(vram, 1), disk)
     return Hardware("other", _platform.processor() or "", 0, 0, disk)
 
 
@@ -113,7 +115,8 @@ def shared_gb(key: str) -> float:
 FEATURES: dict[str, Feature] = {
     "base": Feature("Base (voz, legendas e imagens de banco)",
                     Need(ram_gb=32, disk_gb=15, models=["voxcpm2", "whisper", "clip"]),
-                    Need(ram_gb=32, vram_gb=12, disk_gb=25, models=["voxcpm2", "whisper", "clip"])),
+                    # Windows row: scripts/install/windows.ps1 repeats ram/vram/disk (keep in sync)
+                    Need(ram_gb=32, vram_gb=8, disk_gb=25, models=["voxcpm2", "whisper", "clip"])),
     "ai_images": Feature("Imagens por IA",
                          Need(ram_gb=32, disk_gb=30, tools=["VLMJudge"],
                               models=["z-image-turbo", "flux-schnell", "seedvr2"], shared=["gemma"]),
@@ -149,7 +152,8 @@ def _blocker(key: str, hw: Hardware) -> Blocker | None:
     if need is None:
         return Blocker(key, f"{f.label} não funciona neste computador")
     if need.pending_1b:
-        return Blocker(key, f"{f.label}: ainda não disponível no Windows")
+        return Blocker(key, f"{f.label} precisa de uma placa de vídeo com {_fmt(need.vram_gb)} GB e ainda não está "
+                            "disponível no Windows")
     if need.ram_gb and hw.ram_gb < need.ram_gb:
         who = "seu Mac" if hw.platform == "mac" else "seu computador"
         return Blocker(key, f"{f.label} precisa de {_fmt(need.ram_gb)} GB de memória; {who} tem {_fmt(hw.ram_gb)} GB")

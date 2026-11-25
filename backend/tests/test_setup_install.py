@@ -233,6 +233,29 @@ def test_start_spawns_detached_run_once(env, monkeypatch):
     assert len(spawned) == 1
 
 
+def test_windows_wizard_install_runs_detached_and_offers_no_mac_tools(env, monkeypatch):
+    # the wizard on a Windows PC: start() must not crash (no start_new_session there) and only the CUDA models of the
+    # basic install are listed; Mac-only tools (LTX2MLX, VLMJudge, MLX Gemma) are never offered
+    import sys
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(install, "PLATFORM", "windows")
+    spawned = []
+
+    class P:
+        pid = 4343
+
+        def poll(self):
+            return None
+    monkeypatch.setattr(install.subprocess, "Popen", lambda cmd, **kw: spawned.append((cmd, kw)) or P())
+    install.start(["base", "ai_images", "music", "avatar", "animation", "kids"])
+    cmd, kw = spawned[0]
+    assert "start_new_session" not in kw and kw["creationflags"] == 0x00000008 | 0x00000200
+    got = {i["id"] for i in install.status()["items"]}
+    assert got == {"voxcpm2", "whisper", "clip", "flux-schnell"}
+    assert not got & {"LTX2MLX", "VLMJudge", "gemma", "seedvr2", "RobustVideoMatting", "ACE-Step-1.5"}
+
+
 def test_routes(env, monkeypatch):
     from cvm.api import setup as setup_api
 

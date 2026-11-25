@@ -21,7 +21,7 @@ The models are open and run on your machine, with no paid API. For scripts, the 
 - 48 GB of memory for the talking presenter, animated scenes and kids series.
 - Disk space: about 15 GB for the basics, plus 20 GB free for your videos. AI images and animation need more. The setup wizard shows the numbers for your machine.
 - [Claude Code](https://claude.com/claude-code), signed in with your subscription, for the scripts.
-- Windows with an NVIDIA card: coming soon.
+- Or a Windows 11 PC with an NVIDIA card of 8 GB or more and 32 GB of memory (see below).
 
 ## Install: double-click INSTALAR.command
 
@@ -33,6 +33,19 @@ The models are open and run on your machine, with no paid API. For scripts, the 
 You can run it again at any time. Once everything is installed, it just starts the app and opens the browser.
 
 The interface is available in English and Portuguese.
+
+## Install on Windows: double-click INSTALAR.bat
+
+You need Windows 11, an NVIDIA card with at least 8 GB of video memory (with its driver installed) and 32 GB of memory.
+
+1. Download or clone this repository.
+2. Double-click `INSTALAR.bat`. If Windows warns that the file came from the internet, choose More info and then Run anyway.
+3. If `winget` is missing, install App Installer from the Microsoft Store and run `INSTALAR.bat` again.
+4. The installer checks your card and memory first. Then it adds whatever is missing (`uv`, Node, FFmpeg, Poppler, Git), starts the API, the queue and the interface in their own windows, and opens the setup wizard at http://localhost:3010/instalar.
+
+On Windows you get the basics: voice, captions, library footage, and AI images when the card has enough memory. The talking presenter, animated scenes and kids series need a 24 GB card and are not available on Windows yet.
+
+To stop the app, close the three CVM windows or run `INSTALAR.bat stop`.
 
 ## Updates
 
@@ -68,4 +81,4 @@ Built on open models and tools, including VoxCPM2, Whisper, CLIP, LTX-Video, FLU
 
 ## Português
 
-O Orto CVM é uma fábrica de vídeos com IA que roda no seu Mac: escreve o roteiro (com o Claude, pela sua assinatura do Claude Code), narra com voz clonada local, junta ou gera as imagens e entrega versões para YouTube, Shorts, Reels e TikTok. Você aprova o roteiro e o vídeo antes de publicar. Para instalar, dê dois cliques em `INSTALAR.command`. A interface está em português e inglês.
+O Orto CVM é uma fábrica de vídeos com IA que roda no seu computador: escreve o roteiro (com o Claude, pela sua assinatura do Claude Code), narra com voz clonada local, junta ou gera as imagens e entrega versões para YouTube, Shorts, Reels e TikTok. Você aprova o roteiro e o vídeo antes de publicar. Para instalar, dê dois cliques em `INSTALAR.command` (Mac) ou `INSTALAR.bat` (Windows 11 com placa NVIDIA de 8 GB ou mais e 32 GB de memória). No Windows, por enquanto, só entra o básico. O apresentador falando, as cenas animadas e as séries infantis precisam de uma placa de 24 GB e ainda não estão disponíveis lá. A interface está em português e inglês.

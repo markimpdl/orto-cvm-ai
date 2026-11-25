@@ -45,8 +45,12 @@ uv run python -m cvm.trends.collect  # one-off trend collection
 uv run python -m cvm.models_registry # model status / download <id>
 cd ../frontend && npm run dev        # UI on :3010
 ```
-`INSTALAR.command` installs everything on a Mac and opens the wizard; `scripts/cvm-start.sh` / `cvm-stop.sh` start and
-stop API, worker and UI; `scripts/install-launchd.sh` keeps them running at login.
+`INSTALAR.command` (Mac, `scripts/install/mac.sh`) and `INSTALAR.bat` (Windows 11 + NVIDIA ≥ 8 GB,
+`scripts/install/windows.ps1`: winget for uv/Node/FFmpeg/Poppler/Git, ffmpeg path into `.env`) install everything and
+open the wizard; both take `restart` (used by Atualizar; Windows also `stop`). On Windows the talking presenter,
+animation and kids series are not available yet (24 GB card, part 1B). `scripts/cvm-start.sh` / `cvm-stop.sh` (Mac)
+and `INICIAR.bat` / `DESLIGAR.bat` (Windows) start and stop API, worker and UI; `scripts/install-launchd.sh` keeps them
+running at login on the Mac.
 
 ## Settings (`.env`, prefix `CVM_`)
 - `CVM_VIDEO_LANGUAGES` — languages offered everywhere (wizard, channels, new video, avatars, filters).

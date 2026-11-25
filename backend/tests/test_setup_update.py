@@ -214,7 +214,7 @@ def test_start_refused_when_nothing_to_do_or_not_a_mac(env, monkeypatch):
     with pytest.raises(ValueError, match="mudados"):
         update.check_can_start()
     git(env["root"], "checkout", "-q", "--", "VERSION")
-    monkeypatch.setattr(update.sys, "platform", "win32")
+    monkeypatch.setattr(update.sys, "platform", "linux")
     with pytest.raises(ValueError, match="não é suportada"):
         update.check_can_start()
 
@@ -380,3 +380,93 @@ def test_tag_cache_is_dropped_when_a_run_finishes(env):
     update._save({"state": "failed", "finished_at": update._now()})
     assert update.status()["latest"] == "v2.0"
     assert update.status()["latest"] == "v2.0"
+
+
+# ---------- Windows (INSTALAR.bat / scripts/install/windows.ps1) ----------
+
+def _ps(root):
+    return ("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            str(root / "scripts" / "install" / "windows.ps1"))
+
+
+def test_windows_update_stops_before_sync_and_restarts_with_powershell(env, monkeypatch):
+    monkeypatch.setattr(update.sys, "platform", "win32")
+    monkeypatch.setattr("shutil.which", lambda n: f"C:\\Tools\\{n}.cmd" if n == "npm" else None)
+    assert update.run() == 0
+    ps = _ps(env["root"])
+    # the running API/worker lock the .venv on Windows: stop, sync, then restart
+    assert [c for c, _cwd, _tag in env["sh"]] == [
+        (*ps, "stop"), ("uv", "sync"), ("C:\\Tools\\npm.cmd", "install", "--no-audit", "--no-fund"), (*ps, "restart")]
+    assert update.state()["state"] == "done"
+
+
+def test_windows_rollback_stops_again_before_resyncing(env, monkeypatch):
+    monkeypatch.setattr(update.sys, "platform", "win32")
+    monkeypatch.setattr("shutil.which", lambda n: None)
+    root, log = env["root"], env["sh"]
+
+    def sh(cmd, cwd):
+        tag = git(root, "describe", "--tags", "--exact-match")
+        log.append((tuple(cmd), cwd.name, tag))
+        if cmd[0] == "npm" and tag == "v1.10":
+            raise update.StepFailed("npm install falhou")
+    monkeypatch.setattr(update, "_sh", sh)
+    assert update.run() == 1
+    assert [c[-1] if c[0] == "powershell" else c[0] for c, *_ in log] == \
+        ["stop", "uv", "npm", "stop", "uv", "npm", "restart"]
+    st = update.state()
+    assert st["state"] == "failed" and "voltou para a versão v1.0" in st["error"]
+
+
+def test_rollback_failure_names_the_installer_of_this_system(env, monkeypatch):
+    monkeypatch.setattr(update.sys, "platform", "win32")
+    monkeypatch.setattr("shutil.which", lambda n: None)
+
+    def sh(cmd, cwd):
+        if cmd[0] == "npm":
+            raise update.StepFailed("npm install falhou")
+    monkeypatch.setattr(update, "_sh", sh)
+    assert update.run() == 1
+    assert "INSTALAR.bat" in update.state()["error"]
+
+
+def test_supported_systems(monkeypatch):
+    for plat, ok in (("darwin", True), ("win32", True), ("linux", False)):
+        monkeypatch.setattr(update.sys, "platform", plat)
+        assert update.supported() is ok
+
+
+def test_failed_powershell_command_is_named_without_flags_or_path(monkeypatch, tmp_path):
+    import subprocess as sp
+
+    monkeypatch.setattr(update.sys, "platform", "win32")
+    seen = {}
+
+    def run(*a, **k):
+        seen.update(k)
+        return sp.CompletedProcess(a, 1)
+    monkeypatch.setattr(update.subprocess, "run", run)
+    with pytest.raises(update.StepFailed) as e:
+        update._sh(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                    "C:\\CVM\\scripts\\install\\windows.ps1", "restart"], tmp_path)
+    assert "“powershell windows.ps1 restart”" in str(e.value) and "CVM\\" not in str(e.value)
+    assert seen["creationflags"] == 0x08000000  # CREATE_NO_WINDOW: no console flashing from the detached run
+
+
+def test_start_is_detached_on_windows(env, monkeypatch):
+    from cvm.config import settings
+
+    monkeypatch.setattr(update.sys, "platform", "win32")
+    monkeypatch.setattr(update, "check_can_start", lambda: None)
+    monkeypatch.setattr(settings, "data_dir", env["tmp"] / "data")
+    spawned = []
+
+    class P:
+        pid = 4321
+
+        def poll(self):
+            return None
+    monkeypatch.setattr(update.subprocess, "Popen", lambda cmd, **kw: spawned.append(kw) or P())
+    update.start()
+    assert "start_new_session" not in spawned[0]
+    assert spawned[0]["creationflags"] == 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP

@@ -256,7 +256,7 @@ def get_update():
 
     if not update.public_install():
         return {"public_install": False}
-    out: dict = {"public_install": True, "supported": update.sys.platform == "darwin", "run": update.state()}
+    out: dict = {"public_install": True, "supported": update.supported(), "run": update.state()}
     try:
         out.update(update.status())
         out["error"] = None

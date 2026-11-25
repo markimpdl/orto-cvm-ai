@@ -1,75 +1,71 @@
 # Orto CVM
 
-Fábrica de vídeos com IA que roda no seu computador. Você escolhe um assunto, o app escreve o roteiro, grava a narração, monta as imagens e entrega o vídeo pronto para o YouTube, Shorts, Reels e TikTok. Você aprova o roteiro e o vídeo antes de qualquer publicação.
+An AI video factory that runs on your own computer. You pick a topic, and the app writes the script, records the narration, puts the visuals together and hands you a video ready for YouTube, Shorts, Reels and TikTok. You approve the script and the finished video before anything is published.
 
-## O que ele faz
+## What it does
 
-1. Ideias: junta assuntos em alta (YouTube, Google, notícias, Reddit) e dá uma nota de potencial para cada um. Também sugere ideias para o nicho de cada canal.
-2. Roteiro: o Claude, pela sua assinatura do Claude Code, escreve o roteiro com gancho, promessa e blocos, e um revisor confere fatos e riscos. Você aprova ou pede ajustes.
-3. Narração: voz clonada por IA local (VoxCPM2), conferida frase a frase por transcrição. Dá para treinar a sua própria voz no Estúdio de voz.
-4. Imagens: vídeos e fotos de bancos gratuitos (Wikimedia, Openverse, Pexels e Pixabay com chave), imagens geradas por IA e checadas por um juiz visual, e cenas animadas.
-5. Apresentador (opcional): um avatar que fala sincronizado com a narração. O avatar Lucas já vem pronto.
-6. Vídeos por plataforma: 16:9 para o YouTube e 9:16 para Shorts, Reels e TikTok, com legendas, capítulos, thumbnail e SEO.
-7. Conferência pela IA: antes de o vídeo chegar até você, a IA confere o áudio, as imagens, a estrutura e se o vídeo cumpre o que o título promete.
-8. Publicação: um kit para publicar à mão (sempre disponível) ou envio pelas APIs oficiais. A agenda segue os horários de cada canal.
+1. Ideas: collects trending topics (YouTube, Google, news, Reddit) and scores each one for potential. It also suggests ideas for each channel's niche.
+2. Script: Claude, through your Claude Code subscription, writes the script with a hook, a promise and content blocks, and a reviewer checks facts and risks. You approve it or ask for changes.
+3. Narration: a voice cloned by a local AI model (VoxCPM2), checked sentence by sentence against a transcription. You can train your own voice in the Voice studio.
+4. Visuals: videos and photos from free libraries (Wikimedia, Openverse, and Pexels and Pixabay with a key), AI images checked by a visual judge, and animated scenes.
+5. Presenter (optional): an avatar that talks in sync with the narration. The Lucas avatar comes ready to use.
+6. Per-platform videos: 16:9 for YouTube and 9:16 for Shorts, Reels and TikTok, with captions, chapters, a thumbnail and SEO.
+7. AI review: before a video reaches you, the AI checks the audio, the visuals, the structure and whether the video delivers what its title promises.
+8. Publishing: a kit for publishing by hand (always available) or upload through the official APIs. The schedule follows each channel's posting times.
 
-Os modelos são abertos e rodam na sua máquina, sem API paga. Para os roteiros, o app chama o Claude Code (`claude -p`) com a sua assinatura e não usa chave de API.
+The models are open and run on your machine, with no paid API. For scripts, the app calls Claude Code (`claude -p`) with your subscription and never uses an API key.
 
-## Do que você precisa
+## What you need
 
-- Mac com chip Apple (M1 ou mais novo) e pelo menos 32 GB de memória, o mínimo para o básico: voz, legendas e imagens de banco.
-- 48 GB de memória para o apresentador falando, cenas animadas e séries infantis.
-- Espaço em disco: uns 15 GB para o básico, mais 20 GB de folga para os vídeos. Imagens por IA e animação pedem mais. O assistente de instalação mostra a conta para a sua máquina.
-- O [Claude Code](https://claude.com/claude-code) com login feito na sua assinatura, para os roteiros.
-- Windows com placa NVIDIA: em breve.
+- A Mac with Apple silicon (M1 or newer) and at least 32 GB of memory. That covers the basics: voice, captions and library footage.
+- 48 GB of memory for the talking presenter, animated scenes and kids series.
+- Disk space: about 15 GB for the basics, plus 20 GB free for your videos. AI images and animation need more. The setup wizard shows the numbers for your machine.
+- [Claude Code](https://claude.com/claude-code), signed in with your subscription, for the scripts.
+- Windows with an NVIDIA card: coming soon.
 
-## Instalar: dois cliques em INSTALAR.command
+## Install: double-click INSTALAR.command
 
-1. Baixe ou clone este repositório.
-2. Dê dois cliques em `INSTALAR.command`. Se o macOS bloquear por ser um arquivo da internet, clique com o botão direito, escolha Abrir e confirme.
-3. Se faltar o Homebrew, o instalador mostra a linha para colar no Terminal (ela pede a sua senha, por isso fica com você). Depois, rode `INSTALAR.command` de novo.
-4. O instalador coloca o que faltar (`uv`, Node, `ffmpeg-full`, `poppler`), liga a API, a fila e a interface e abre o assistente em http://localhost:3010/instalar. Lá você escolhe os recursos, baixa os modelos e cria o primeiro canal.
+1. Download or clone this repository.
+2. Double-click `INSTALAR.command`. If macOS blocks it because it came from the internet, right-click it, choose Open and confirm.
+3. If Homebrew is missing, the installer shows the line to paste into Terminal (it asks for your password, so you run it yourself). Then run `INSTALAR.command` again.
+4. The installer adds whatever is missing (`uv`, Node, `ffmpeg-full`, `poppler`), starts the API, the queue and the interface, and opens the setup wizard at http://localhost:3010/instalar. There you choose the features, download the models and create your first channel.
 
-Pode rodar de novo quando quiser. Com tudo instalado, ele só liga o app e abre o navegador.
+You can run it again at any time. Once everything is installed, it just starts the app and opens the browser.
 
-## Configuração
+The interface is available in English and Portuguese.
 
-Copie `.env.example` para `.env`. Tudo é opcional: sem chaves, o app usa só as fontes que não pedem cadastro. As chaves do YouTube, Pexels e Pixabay são gratuitas.
+## Updates
 
-## Para quem desenvolve
+When a new version is tagged here, the app shows an Update button. It waits for the queue to reach a safe point, moves to the new version and restarts. If anything fails, it goes back to the version you had.
+
+## Configuration
+
+Copy `.env.example` to `.env`. Everything in it is optional: without keys, the app only uses sources that need no sign-up. The YouTube, Pexels and Pixabay keys are free.
+
+## For developers
 
 ```bash
 cd backend && uv sync
-uv run pytest                 # testes
-uv run cvm-api                # API em http://127.0.0.1:8790
-uv run cvm-worker             # fila
-cd ../frontend && npm install && npm run dev   # interface em http://localhost:3010
+uv run pytest                 # tests
+uv run cvm-api                # API at http://127.0.0.1:8790
+uv run cvm-worker             # queue
+cd ../frontend && npm install && npm run dev   # interface at http://localhost:3010
 ```
 
-O `CLAUDE.md` descreve a arquitetura, o pipeline e a fila.
+`CLAUDE.md` describes the architecture, the pipeline and the queue.
 
-## Licença
+## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE). Você pode usar, estudar, modificar e compartilhar o app para fins não comerciais, como uso pessoal, estudo, pesquisa, escolas e entidades sem fins lucrativos. Vender o app ou usá-lo para fins comerciais não é permitido. O texto completo está em `LICENSE`.
+[PolyForm Noncommercial 1.0.0](LICENSE). You may use, study, change and share the app for noncommercial purposes, such as personal use, study, research, schools and nonprofits. Selling the app or using it commercially is not allowed. The full text is in `LICENSE`.
 
-Os vídeos que você faz com o app são seus. Os modelos baixados pelo instalador têm licenças próprias; confira cada uma antes de usar um modelo em projeto comercial.
+The videos you make with the app are yours. The models the installer downloads have their own licenses; check each one before using a model in a commercial project.
 
-## Créditos
-
-Criado por Marcos Ortolani.
-
-Usa modelos e ferramentas abertos, entre eles VoxCPM2, Whisper, CLIP, LTX-Video, FLUX, Z-Image, SeedVR2, Gemma, Wan, Robust Video Matting, ACE-Step e FFmpeg, cada um com a sua licença.
-
-## English
-
-Orto CVM is an AI video factory that runs on your own Mac. Pick a topic and it writes the script (with Claude, through your Claude Code subscription), narrates it with a local cloned voice, gathers or generates the visuals and renders versions for YouTube, Shorts, Reels and TikTok. You approve the script and the final video before anything is published. No paid APIs.
-
-Requirements: an Apple Silicon Mac (M1 or newer) with at least 32 GB of RAM (48 GB for the talking presenter and animated scenes), and Claude Code signed in. Windows with an NVIDIA GPU is coming.
-
-To install, double-click `INSTALAR.command`. It installs whatever is missing and opens the setup wizard at http://localhost:3010/instalar. The interface is available in Portuguese and English.
-
-License: [PolyForm Noncommercial 1.0.0](LICENSE). You may use, change and share it for noncommercial purposes. Selling it is not allowed.
-
-### Credits
+## Credits
 
 Made by Marcos Ortolani.
+
+Built on open models and tools, including VoxCPM2, Whisper, CLIP, LTX-Video, FLUX, Z-Image, SeedVR2, Gemma, Wan, Robust Video Matting, ACE-Step and FFmpeg, each under its own license.
+
+## Português
+
+O Orto CVM é uma fábrica de vídeos com IA que roda no seu Mac: escreve o roteiro (com o Claude, pela sua assinatura do Claude Code), narra com voz clonada local, junta ou gera as imagens e entrega versões para YouTube, Shorts, Reels e TikTok. Você aprova o roteiro e o vídeo antes de publicar. Para instalar, dê dois cliques em `INSTALAR.command`. A interface está em português e inglês.

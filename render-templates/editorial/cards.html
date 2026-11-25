@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: Anton; src: url(fonts/Anton-Regular.ttf); }
+@font-face { font-family: Plex; src: url(fonts/IBMPlexMono-Medium.ttf); font-weight: 500; }
+@font-face { font-family: Plex; src: url(fonts/IBMPlexMono-SemiBold.ttf); font-weight: 600; }
+@font-face { font-family: Inter; src: url(fonts/Inter.ttf); font-weight: 100 900; }
+:root {
+  --ink: #0A0E17; --paper: #F4F1EA; --accent: #FFD21E; --ok: #19C37D; --muted: #9AA3B2; --white: #F7F7F5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+body.card { background: var(--ink); }
+#stage { position: absolute; inset: 0; overflow: hidden; }
+/* background: official image, dark and soft, drifting */
+#bg { position: absolute; inset: -60px; background-size: cover; background-position: center;
+      filter: blur(16px) brightness(.32) saturate(.75); }
+/* light from the top-right corner, irregular (two gradients), never a centred halo */
+#light { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(38% 52% at 94% 6%, rgba(255,210,30,.13), transparent 70%),
+              radial-gradient(55% 40% at 72% 92%, rgba(255,210,30,.05), transparent 75%); }
+#vignette { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 220px 60px rgba(0,0,0,.6); }
+#grain { position: absolute; inset: 0; pointer-events: none; z-index: 90; opacity: .075;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='linear' slope='3.2' intercept='-1.1'/><feFuncG type='linear' slope='3.2' intercept='-1.1'/><feFuncB type='linear' slope='3.2' intercept='-1.1'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+body.overlay #grain { opacity: .05; }
+body.overlay #bg { display: none; }
+body.overlay #vignette { box-shadow: inset 0 0 200px 30px rgba(0,0,0,.45); }
+body.overlay #light { opacity: .5; }
+#topshade { position: absolute; left: 0; right: 0; top: 0; height: 330px; display: none;
+  background: linear-gradient(rgba(5,8,14,.78), rgba(5,8,14,.35) 60%, transparent); }
+body.overlay #topshade { display: block; }
+body.overlay.fim #topshade, body.overlay.fim #botshade { display: none; }
+#botshade { position: absolute; left: 0; right: 0; bottom: 0; height: 140px; display: none;
+  background: linear-gradient(transparent, rgba(5,8,14,.6)); }
+body.overlay #botshade { display: block; }
+
+/* header strip */
+#header { position: absolute; left: 72px; top: 54px; z-index: 20; }
+#kicker { display: inline-block; font: 600 22px/1 Plex, monospace; letter-spacing: 3px; color: var(--ink);
+  background: var(--accent); padding: 7px 12px 6px; transform-origin: left center; }
+#headline { margin-top: 12px; font: 76px/1.02 Anton, sans-serif; color: var(--white); letter-spacing: .4px;
+  text-transform: uppercase; text-shadow: -2px 3px 0 rgba(0,0,0,.35); white-space: nowrap; }
+.acc { color: var(--accent); }
+/* channel bug */
+#bug { position: absolute; right: 64px; top: 52px; display: flex; align-items: center; gap: 14px; z-index: 20; }
+#bug img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover;
+  box-shadow: -2px 3px 3px rgba(0,0,0,.5), -10px 16px 24px rgba(0,0,0,.35); }
+#bug span { font: 600 20px/1.1 Plex, monospace; color: rgba(247,247,245,.85); letter-spacing: 2px; text-align: right; }
+/* footer */
+#footer { position: absolute; left: 72px; bottom: 40px; font: 500 21px/1 Plex, monospace; color: var(--muted);
+  letter-spacing: 1px; z-index: 20; }
+#footer b { color: var(--accent); font-weight: 600; }
+
+#content { position: absolute; left: 0; right: 0; top: 0; bottom: 0; z-index: 10; }
+.abs { position: absolute; }
+
+/* numero */
+.num { font: 300px/0.9 Anton, sans-serif; color: var(--accent); letter-spacing: 2px; text-shadow: -4px 6px 0 rgba(0,0,0,.35); }
+.numlabel { font: 500 44px/1.25 Inter, sans-serif; color: rgba(247,247,245,.9); max-width: 1150px; }
+.selo { display: inline-block; font: 600 26px/1 Plex, monospace; color: var(--ok); border: 3px solid var(--ok);
+  padding: 9px 14px 8px; letter-spacing: 2px; background: rgba(10,14,23,.55); }
+
+/* prova */
+.paperwrap { position: absolute; transform-origin: 50% 50%; }
+.paper { position: relative; background: #fff; padding: 0; border-radius: 4px;
+  box-shadow: -3px 4px 3px rgba(0,0,0,.55), -18px 26px 34px rgba(0,0,0,.45); }
+.paper img { display: block; border-radius: 4px; }
+.hlbox { position: absolute; border: 6px solid var(--accent); border-radius: 6px; transform-origin: left center; box-shadow: -2px 3px 3px rgba(0,0,0,.45); }
+.hl { position: absolute; background: rgba(255,210,30,.62); mix-blend-mode: multiply; transform-origin: left center; border-radius: 3px; }
+.trad { position: absolute; border-left: 6px solid var(--accent); padding: 10px 0 10px 22px; max-width: 1500px; }
+.trad small { display: block; font: 600 18px/1 Plex, monospace; letter-spacing: 3px; color: var(--muted); margin-bottom: 10px; }
+.trad p { font: 500 36px/1.3 Inter, sans-serif; color: var(--white); }
+.paperselo { position: absolute; top: -26px; left: 26px; z-index: 3; }
+
+/* pergunta */
+.q { font: 168px/0.98 Anton, sans-serif; color: var(--white); text-transform: uppercase; letter-spacing: 1px;
+  text-shadow: -4px 6px 0 rgba(0,0,0,.45); }
+.qsub { font: 600 34px/1 Plex, monospace; color: var(--accent); letter-spacing: 4px; text-transform: uppercase; }
+
+/* impacto */
+body.impacto { background: var(--accent); }
+body.impacto #bg, body.impacto #light { display: none; }
+body.impacto #vignette { box-shadow: inset 0 0 260px 40px rgba(120,80,0,.35); }
+.imp { font: 330px/0.92 Anton, sans-serif; color: var(--ink); text-transform: uppercase; letter-spacing: 2px; }
+.imp .acc { color: #fff; -webkit-text-stroke: 0; text-shadow: -5px 7px 0 rgba(10,14,23,.85); }
+.impsmall { font: 600 38px/1 Plex, monospace; color: var(--ink); letter-spacing: 6px; }
+
+/* listas */
+.row { position: absolute; left: 72px; display: flex; align-items: baseline; gap: 34px; }
+.row .n { font: 150px/1 Anton, sans-serif; color: var(--accent); width: 110px; text-align: right; text-shadow: -3px 5px 0 rgba(0,0,0,.35); }
+.row .t { font: 74px/1.05 Anton, sans-serif; color: var(--white); text-transform: uppercase; max-width: 1500px; }
+.box { position: absolute; width: 500px; height: 300px; border: 4px solid rgba(247,247,245,.25); background: rgba(10,14,23,.6);
+  display: flex; align-items: center; justify-content: center; text-align: center; padding: 26px;
+  font: 66px/1.02 Anton, sans-serif; color: var(--white); text-transform: uppercase;
+  box-shadow: -3px 4px 3px rgba(0,0,0,.5), -16px 24px 30px rgba(0,0,0,.35); }
+.box.on { border-color: var(--accent); }
+.arrow { position: absolute; font: 110px/1 Anton, sans-serif; color: var(--accent); }
+
+/* titulo de tela sobre video */
+.tt { font: 250px/0.9 Anton, sans-serif; color: var(--white); letter-spacing: 6px; text-shadow: -5px 8px 0 rgba(0,0,0,.5); }
+
+/* vinheta */
+body.vinheta { background: var(--ink); }
+.ring { position: absolute; border: 6px solid var(--accent); border-radius: 50%; }
+.vlogo { position: absolute; border-radius: 50%; border: 8px solid var(--accent); object-fit: cover;
+  box-shadow: -6px 8px 6px rgba(0,0,0,.5), -24px 34px 50px rgba(0,0,0,.45); }
+.vname { font: 120px/1 Anton, sans-serif; color: var(--white); letter-spacing: 3px; white-space: nowrap; }
+.vmono { display: flex; align-items: center; justify-content: center; background: var(--ink);
+  font: 170px/1 Anton, sans-serif; color: var(--accent); }
+.vslogan { font: 600 32px/1 Plex, monospace; color: var(--accent); letter-spacing: 8px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div><div id="light"></div><div id="topshade"></div><div id="botshade"></div>
+  <div id="content"></div>
+  <div id="header"><div id="kicker"></div><div id="headline"></div></div>
+  <div id="bug"><span id="bugname"></span><img id="buglogo"></div>
+  <div id="footer"></div>
+  <div id="vignette"></div><div id="grain"></div>
+</div>
+<script>
+// ---------- helpers ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const easeOut = x => 1 - Math.pow(1 - clamp(x), 3);
+const easeInOut = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const back = x => { x = clamp(x); const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const acc = s => esc(s).replace(/\*(.+?)\*/g, '<span class="acc">$1</span>');
+const el = (tag, cls, html, css) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (css) Object.assign(e.style, css); return e; };
+// "pop" entrance: returns [opacity, translateY px, scale]
+const pop = (t, t0, d = .32) => { const k = (t - t0) / d; return [clamp(k * 1.6), (1 - easeOut(k)) * 40, .9 + .1 * back(k)]; };
+const fx = (e, o, y = 0, s = 1, extra = '') => { e.style.opacity = o; e.style.transform = `translateY(${y}px) scale(${s}) ${extra}`; };
+
+let S = null, D = 0, parts = {};
+
+window.setup = (scene, dur) => {
+  S = scene; D = dur; parts = {};
+  const st0 = document.getElementById('stage'); st0.style.transform = ''; st0.style.filter = ''; st0.style.opacity = 1;
+  document.getElementById('content').style.transform = '';
+  document.body.className = (scene.body || 'card') + (scene.fim ? ' fim' : '');
+  const C = document.getElementById('content'); C.innerHTML = '';
+  document.getElementById('bg').style.backgroundImage = scene.bg ? `url(${scene.bg})` : 'none';
+  // brand: the channel's name (first word, then the rest on a second line), logo and accent come from the spec
+  const words = (scene.name || '').trim().toUpperCase().split(/\s+/).filter(Boolean);
+  const nameHead = words[0] || '', nameRest = words.slice(1).join(' ');
+  document.getElementById('bugname').innerHTML = esc(nameHead) + (nameRest ? '<br>' + esc(nameRest) : '');
+  const BL = document.getElementById('buglogo');
+  if (scene.logo) { BL.src = scene.logo; BL.style.display = ''; } else { BL.removeAttribute('src'); BL.style.display = 'none'; }
+  if (scene.accent) document.documentElement.style.setProperty('--accent', scene.accent);
+  else document.documentElement.style.removeProperty('--accent');
+  const LB = Object.assign({ fonte: 'FONTE', traducao: 'TRADUÇÃO LIVRE' }, scene.labels || {});
+  const H = document.getElementById('header');
+  H.style.display = scene.secao && !scene.no_header ? 'block' : 'none';
+  if (scene.secao) { document.getElementById('kicker').textContent = scene.secao[0]; document.getElementById('headline').innerHTML = acc(scene.secao[1]); }
+  document.getElementById('bug').style.display = ['vinheta', 'impacto'].includes(scene.body) || scene.tipo === 'fim' || scene.fim ? 'none' : 'flex';
+  document.getElementById('footer').innerHTML = scene.fonte ? `${esc(LB.fonte)} <b>›</b> ${esc(scene.fonte)}` : '';
+  const t = scene.tipo;
+  if (t === 'numero') {
+    parts.num = C.appendChild(el('div', 'num abs', esc(scene.valor), { left: '72px', top: '300px' }));
+    parts.label = C.appendChild(el('div', 'numlabel abs', esc(scene.rotulo), { left: '80px', top: '600px' }));
+    if (scene.selo) parts.selo = C.appendChild(el('div', 'selo abs', esc(scene.selo), { left: '80px', top: '760px' }));
+  } else if (t === 'prova') {
+    const wrap = parts.wrap = C.appendChild(el('div', 'paperwrap'));
+    const paper = wrap.appendChild(el('div', 'paper'));
+    const img = paper.appendChild(el('img')); img.src = scene.img;
+    // fit inside the content box
+    const maxW = 1560, maxH = scene.traducao ? 520 : 640;
+    const k = Math.min(maxW / scene.size[0], maxH / scene.size[1], 1.15);
+    const w = scene.size[0] * k, h = scene.size[1] * k;
+    img.style.width = w + 'px'; img.style.height = h + 'px';
+    const left = (1920 - w) / 2, top = Math.round(235 + (740 - h - (scene.traducao ? 175 : 0)) / 2);
+    Object.assign(wrap.style, { left: left + 'px', top: top + 'px', width: w + 'px', height: h + 'px' });
+    parts.hls = [];
+    (scene.boxes || []).forEach(b => b.rects.forEach(r => {
+      const d = paper.appendChild(el('div', scene.escuro ? 'hlbox' : 'hl', null, { left: (r[0] * k - 6) + 'px', top: (r[1] * k - 3) + 'px', width: (r[2] * k + 12) + 'px', height: (r[3] * k + 6) + 'px' }));
+      parts.hls.push([d, b.t, r[2]]);
+    }));
+    // camera target = centre of the first highlighted phrase
+    const fb = scene.boxes && scene.boxes[0];
+    if (fb) { const r = fb.rects[0]; parts.focus = [(r[0] + r[2] / 2) * k / w, (r[1] + r[3] / 2) * k / h]; parts.ft = fb.t; }
+    if (scene.selo) wrap.appendChild(el('div', 'selo paperselo', esc(scene.selo)));
+    if (scene.traducao) parts.trad = C.appendChild(el('div', 'trad', `<small>${esc(LB.traducao)}</small><p>${esc(scene.traducao)}</p>`, { left: left + 'px', top: (top + h + 46) + 'px' }));
+  } else if (t === 'pergunta') {
+    parts.q = C.appendChild(el('div', 'q abs', acc(scene.texto), { left: '72px', top: scene.sub ? '360px' : '400px', maxWidth: '1700px' }));
+    if (scene.sub) parts.sub = C.appendChild(el('div', 'qsub abs', esc(scene.sub), { left: '80px', top: '720px' }));
+  } else if (t === 'impacto') {
+    if (scene.pequeno) parts.small = C.appendChild(el('div', 'impsmall abs', esc(scene.pequeno), { left: '120px', top: '300px' }));
+    parts.imp = C.appendChild(el('div', 'imp abs', acc(scene.texto), { left: '110px', top: scene.pequeno ? '360px' : '330px', whiteSpace: 'nowrap' }));
+    { const n = scene.texto.replace(/\*/g, '').length; if (n > 9) parts.imp.style.fontSize = Math.max(150, Math.round(330 * 9.5 / n)) + 'px'; }
+  } else if (t === 'lista' && scene.estilo === 'regras') {
+    parts.rows = scene.itens.map((it, i) => { const r = C.appendChild(el('div', 'row', `<div class="n">${i + 1}</div><div class="t">${esc(it.text)}</div>`)); r.style.top = (300 + i * 210) + 'px'; return [r, it.t]; });
+  } else if (t === 'lista') {
+    // 1–5 boxes centred in a 1700 px band (110 px margins, 100 px gaps); 3 boxes keep the 500 px layout
+    const n = scene.itens.length, bw = Math.min(500, Math.floor((1700 - (n - 1) * 100) / n));
+    const x0 = Math.round((1920 - (n * bw + (n - 1) * 100)) / 2);
+    parts.boxes = scene.itens.map((it, i) => {
+      const b = C.appendChild(el('div', 'box', esc(it.text))); b.style.left = (x0 + i * (bw + 100)) + 'px'; b.style.top = '420px';
+      if (bw < 500) { b.style.width = bw + 'px'; b.style.fontSize = Math.round(66 * Math.max(.6, bw / 500)) + 'px'; }
+      return [b, it.t]; });
+    parts.arrows = scene.itens.slice(1).map((_, i) => { const a = C.appendChild(el('div', 'arrow', '›')); a.style.left = (x0 + i * (bw + 100) + bw + 17) + 'px'; a.style.top = '505px'; return a; });
+  } else if (t === 'video' && scene.titulo_tela) {
+    parts.tt = C.appendChild(el('div', 'tt abs', esc(scene.titulo_tela), { left: '72px', bottom: '120px' }));
+  } else if ((t === 'video' || t === 'foto') && scene.fim) {
+    C.appendChild(el('div', 'abs', null, { inset: '0', background: 'rgba(8,11,18,.58)' }));
+    if (scene.logo) {
+      const L = C.appendChild(el('img', 'abs')); L.src = scene.logo;
+      Object.assign(L.style, { width: '120px', height: '120px', left: '900px', top: '70px', borderRadius: '50%', border: '5px solid var(--accent)',
+        objectFit: 'cover', boxShadow: '-3px 4px 3px rgba(0,0,0,.5), -14px 20px 26px rgba(0,0,0,.35)' });
+    }
+  } else if (t === 'vinheta') {
+    parts.rings = [0, 1].map(() => C.appendChild(el('div', 'ring')));
+    // no logo: a monogram (the name's first letter) takes its place
+    const L = parts.vlogo = scene.logo ? C.appendChild(el('img', 'vlogo')) : C.appendChild(el('div', 'vlogo vmono', esc(nameHead.charAt(0))));
+    if (scene.logo) L.src = scene.logo;
+    parts.vname = C.appendChild(el('div', 'vname abs', esc(nameHead) + (nameRest ? ` <span class="acc">${esc(nameRest)}</span>` : ''), { left: '820px', top: '430px' }));
+    parts.vslogan = C.appendChild(el('div', 'vslogan abs', '', { left: '826px', top: '575px' }));
+  }
+  return true;
+};
+
+window.frame = (t) => {
+  const sc = S, tp = sc.tipo;
+  // header: kicker slides in, headline rises (only when the section starts here)
+  const h0 = sc.secao_nova ? 0 : -10;
+  const k = document.getElementById('kicker'), hl = document.getElementById('headline');
+  k.style.transform = `scaleX(${easeOut((t - h0) / .25)})`;
+  const [ho, hy] = pop(t, h0 + .08, .35); hl.style.opacity = ho; hl.style.transform = `translateY(${hy * .6}px)`;
+  // background drift
+  const bg = document.getElementById('bg'); bg.style.transform = `scale(${1.06 + .04 * t / Math.max(D, 1)}) translateX(${-12 * t / Math.max(D, 1)}px)`;
+  const C = document.getElementById('content');
+  // gentle push-in on cards (never exactly 1.0)
+  if (!['video', 'foto', 'prova', 'vinheta'].includes(tp)) C.style.transform = `scale(${1.002 + .025 * t / Math.max(D, 1)})`;
+  if (tp === 'numero') {
+    const [o, y, s] = pop(t, .05, .36); fx(parts.num, o, y, s); parts.num.style.transformOrigin = 'left bottom';
+    const [o2, y2] = pop(t, .3); fx(parts.label, o2, y2);
+    if (parts.selo) { const [o3, , s3] = pop(t, .5, .25); fx(parts.selo, o3, 0, s3, 'rotate(-2deg)'); }
+  } else if (tp === 'prova') {
+    const [o, y] = pop(t, 0, .35);
+    // camera: slow drift, then move toward the highlighted phrase
+    let s = 1.003 + .012 * t / D, fxp = .5, fyp = .5;
+    if (parts.focus) { const m = easeInOut((t - parts.ft + .1) / 1.1); s += .20 * m; fxp = .5 + (parts.focus[0] - .5) * m; fyp = .5 + (parts.focus[1] - .5) * m; }
+    parts.wrap.style.transformOrigin = `${fxp * 100}% ${fyp * 100}%`;
+    parts.wrap.style.opacity = o; parts.wrap.style.transform = `translateY(${y}px) rotate(-0.6deg) scale(${s})`;
+    let tt = 0; parts.hls.forEach(([d, t0, w]) => { const dd = Math.max(.18, w / 1400); const st = t0 + tt; d.style.transform = `scaleX(${easeOut((t - st) / dd)})`; tt += dd * .9; });
+    if (parts.trad) { const [o2, y2] = pop(t, .35); fx(parts.trad, o2, y2); }
+  } else if (tp === 'pergunta') {
+    const [o, y, s] = pop(t, .03, .34); fx(parts.q, o, y, s); parts.q.style.transformOrigin = 'left center';
+    if (parts.sub) { const [o2, y2] = pop(t, .3); fx(parts.sub, o2, y2); }
+  } else if (tp === 'impacto') {
+    const ti = sc.impacto_t || 0;
+    const kk = clamp((t - ti) / .22); const s = 1.35 - .35 * easeOut(kk);
+    const shake = t > ti && t < ti + .28 ? Math.sin(t * 90) * 14 * (1 - (t - ti) / .28) : 0;
+    const o = sc.impacto_t ? (t < ti ? .0 : 1) : clamp(kk * 3);
+    parts.imp.style.opacity = sc.impacto_t ? Math.max(o, 0) : clamp(kk * 3);
+    parts.imp.style.transform = `translateX(${shake}px) rotate(-2deg) scale(${s})`; parts.imp.style.transformOrigin = 'left center';
+    if (sc.impacto_t) { // first the small line alone, the words slam in on "não"
+      parts.imp.style.opacity = t < ti ? 0 : 1; }
+    if (parts.small) { const [o2, y2] = pop(t, 0); fx(parts.small, o2, y2); }
+  } else if (tp === 'lista' && sc.estilo === 'regras') {
+    let last = -1; parts.rows.forEach(([r, t0], i) => { if (t >= t0) last = i; });
+    parts.rows.forEach(([r, t0], i) => { const [o, y, s] = pop(t, t0, .34); r.style.opacity = o * (i < last ? .45 : 1); r.style.transform = `translateY(${y}px) scale(${s})`; r.style.transformOrigin = 'left center'; });
+  } else if (tp === 'lista') {
+    let last = -1; parts.boxes.forEach(([b, t0], i) => { if (t >= t0) last = i; });
+    parts.boxes.forEach(([b, t0], i) => { const [o, y, s] = pop(t, t0, .3); fx(b, o, y, s); b.classList.toggle('on', i === last); });
+    parts.arrows.forEach((a, i) => { const t0 = parts.boxes[i + 1][1] - .12; const [o] = pop(t, t0, .2); a.style.opacity = o; a.style.transform = `translateX(${(1 - easeOut((t - t0) / .25)) * -30}px)`; });
+  } else if (tp === 'video' && parts.tt) {
+    const [o, y, s] = pop(t, .15, .34); fx(parts.tt, o, y, s); parts.tt.style.transformOrigin = 'left bottom';
+  } else if (tp === 'vinheta') {
+    const L = parts.vlogo, sz = 300, cx = 560, cy = 540;
+    const ks = back((t - .12) / .42); const ls = .2 + .8 * ks;
+    Object.assign(L.style, { width: sz + 'px', height: sz + 'px', left: (cx - sz / 2) + 'px', top: (cy - sz / 2) + 'px', opacity: clamp((t - .12) / .12), transform: `scale(${ls}) rotate(${(1 - easeOut((t - .12) / .5)) * -25}deg)` });
+    parts.rings.forEach((r, i) => { const k2 = clamp((t - .5 - i * .1) / .7); const d = sz + 520 * easeOut(k2); Object.assign(r.style, { width: d + 'px', height: d + 'px', left: (cx - d / 2) + 'px', top: (cy - d / 2) + 'px', opacity: (1 - k2) * (k2 > 0 ? .9 : 0) }); });
+    const [o, y] = pop(t, .55, .38); parts.vname.style.opacity = o; parts.vname.style.transform = `translateX(${y * 1.5}px)`;
+    const slogan = (sc.slogan || '').toUpperCase(); const n = Math.floor(clamp((t - .95) / .7) * slogan.length); parts.vslogan.textContent = slogan.slice(0, n);
+    const out = clamp((t - (D - .32)) / .32); const st = document.getElementById('stage');
+    st.style.transform = `scale(${1 + .25 * easeOut(out)})`; st.style.filter = `blur(${out * 14}px)`; st.style.opacity = 1 - out;
+  }
+  return [k.style.transform, hl.style.opacity, C.innerHTML.length, C.style.transform, (parts.tt || {}).style ? parts.tt.style.cssText : ''].join('|');
+};
+</script>
+</body>
+</html>

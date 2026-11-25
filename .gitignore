@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
+models/
+node_modules/
+.next/
+out/
+bakeoff/inputs/
+bakeoff/outputs/
+.DS_Store
+
+# macOS metadata on exFAT drives, per-machine tools/notes
+._*
+tools/
+claude-memory/
+MIGRAR.md
+ATUALIZAR.md
+.superpowers/
+.worktrees/

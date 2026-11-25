@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "cvm": {
+      "command": "uv",
+      "args": ["run", "--project", "backend", "cvm-mcp"]
+    }
+  }
+}

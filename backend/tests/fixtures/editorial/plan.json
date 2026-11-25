@@ -1,0 +1,247 @@
+[
+ {
+  "em": "No",
+  "tipo": "video",
+  "src": "T1",
+  "de": 1.5,
+  "mov": "in",
+  "secao": [
+   "O TESTE",
+   "TRÊS *CARREGADORES*"
+  ],
+  "som": "riser",
+  "_w": 0,
+  "start": 0.0,
+  "end": 3.07,
+  "secao_nova": true
+ },
+ {
+  "em": "Dois",
+  "tipo": "impacto",
+  "texto": "DOIS *ESQUENTARAM*",
+  "som": "impacto",
+  "_w": 9,
+  "start": 3.07,
+  "end": 5.17
+ },
+ {
+  "em": "Hoje",
+  "tipo": "lista",
+  "estilo": "fluxo",
+  "itens": [
+   [
+    "medi,",
+    "MEDIDAS"
+   ],
+   [
+    "mito",
+    "MITO"
+   ],
+   [
+    "dinheiro.",
+    "VALE?"
+   ]
+  ],
+  "som": "pop",
+  "_w": 15,
+  "start": 5.17,
+  "end": 10.92,
+  "secao": [
+   "O TESTE",
+   "TRÊS *CARREGADORES*"
+  ],
+  "_items": [
+   {
+    "t": 0.12,
+    "text": "MEDIDAS"
+   },
+   {
+    "t": 3.23,
+    "text": "MITO"
+   },
+   {
+    "t": 5.33,
+    "text": "VALE?"
+   }
+  ]
+ },
+ {
+  "tipo": "vinheta",
+  "start": 10.92,
+  "end": 13.12,
+  "_w": 15
+ },
+ {
+  "em": "Primeiro,",
+  "tipo": "pergunta",
+  "texto": "O NÚMERO QUE *ASSUSTA*",
+  "sub": "o que o medidor mostrou",
+  "secao": [
+   "A MEDIDA",
+   "QUANTOS *WATTS*"
+  ],
+  "varre": true,
+  "_w": 31,
+  "start": 13.12,
+  "end": 15.22,
+  "secao_nova": true
+ },
+ {
+  "em": "Um",
+  "tipo": "numero",
+  "valor": "10 W",
+  "rotulo": "um carregador comum",
+  "fonte": "medição própria",
+  "som": "pop",
+  "_w": 37,
+  "start": 15.22,
+  "end": 18.020000000000003,
+  "secao": [
+   "A MEDIDA",
+   "QUANTOS *WATTS*"
+  ]
+ },
+ {
+  "em": "rápido",
+  "tipo": "numero",
+  "valor": "65 W",
+  "rotulo": "o mais rápido do teste",
+  "fonte": "medição própria",
+  "_w": 45,
+  "start": 18.020000000000003,
+  "end": 21.17,
+  "secao": [
+   "A MEDIDA",
+   "QUANTOS *WATTS*"
+  ]
+ },
+ {
+  "em": "Segundo",
+  "tipo": "prova",
+  "img": "fabricante.png",
+  "destaque_em": "aguenta.",
+  "fonte": "example.com · 2026",
+  "_w": 54,
+  "start": 21.17,
+  "end": 23.270000000000003,
+  "secao": [
+   "A MEDIDA",
+   "QUANTOS *WATTS*"
+  ]
+ },
+ {
+  "em": "Mas",
+  "tipo": "video",
+  "src": "T2",
+  "de": 4.0,
+  "mov": "in",
+  "som": "whoosh",
+  "_w": 60,
+  "start": 23.270000000000003,
+  "end": 25.62,
+  "secao": [
+   "A MEDIDA",
+   "QUANTOS *WATTS*"
+  ]
+ },
+ {
+  "em": "Então,",
+  "tipo": "pergunta",
+  "texto": "O QUE *FAZER*?",
+  "secao": [
+   "NA PRÁTICA",
+   "TRÊS *CUIDADOS*"
+  ],
+  "varre": true,
+  "_w": 66,
+  "start": 25.62,
+  "end": 27.020000000000003,
+  "secao_nova": true
+ },
+ {
+  "em": "Use",
+  "tipo": "lista",
+  "estilo": "fluxo",
+  "itens": [
+   [
+    "cabo",
+    "CABO CERTO"
+   ],
+   [
+    "capa",
+    "SEM CAPA"
+   ],
+   [
+    "travesseiro.",
+    "NADA EMBAIXO"
+   ]
+  ],
+  "som": "pop",
+  "_w": 70,
+  "start": 27.020000000000003,
+  "end": 32.27,
+  "secao": [
+   "NA PRÁTICA",
+   "TRÊS *CUIDADOS*"
+  ],
+  "_items": [
+   {
+    "t": 0.12,
+    "text": "CABO CERTO"
+   },
+   {
+    "t": 2.18,
+    "text": "SEM CAPA"
+   },
+   {
+    "t": 4.98,
+    "text": "NADA EMBAIXO"
+   }
+  ]
+ },
+ {
+  "em": "Parece",
+  "tipo": "impacto",
+  "texto": "*SIMPLES*.",
+  "som": "impacto",
+  "_w": 85,
+  "start": 32.27,
+  "end": 33.67
+ },
+ {
+  "em": "Se",
+  "tipo": "video",
+  "src": "T1",
+  "de": 8.0,
+  "mov": "out",
+  "_w": 89,
+  "start": 33.67,
+  "end": 37.449999999999996,
+  "secao": [
+   "NA PRÁTICA",
+   "TRÊS *CUIDADOS*"
+  ]
+ },
+ {
+  "tipo": "video",
+  "src": "T2",
+  "de": 6.0,
+  "mov": "in",
+  "fim": true,
+  "start": 37.45,
+  "end": 42.45,
+  "_w": 95,
+  "secao": null
+ },
+ {
+  "tipo": "video",
+  "src": "T1",
+  "de": 3.0,
+  "mov": "in",
+  "fim": true,
+  "start": 42.45,
+  "end": 47.45,
+  "_w": 95,
+  "secao": null
+ }
+]

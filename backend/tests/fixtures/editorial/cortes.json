@@ -1,0 +1,126 @@
+{
+ "cenas": [
+  {
+   "em": "No",
+   "tipo": "video",
+   "src": "T1",
+   "de": 1.5,
+   "mov": "in",
+   "secao": [
+    "O TESTE",
+    "TRÊS *CARREGADORES*"
+   ],
+   "som": "riser"
+  },
+  {
+   "em": "Dois",
+   "tipo": "impacto",
+   "texto": "DOIS *ESQUENTARAM*",
+   "som": "impacto"
+  },
+  {
+   "em": "Hoje",
+   "tipo": "lista",
+   "estilo": "fluxo",
+   "itens": [
+    [
+     "medi,",
+     "MEDIDAS"
+    ],
+    [
+     "mito",
+     "MITO"
+    ],
+    [
+     "dinheiro.",
+     "VALE?"
+    ]
+   ],
+   "som": "pop"
+  },
+  {
+   "em": "Primeiro,",
+   "tipo": "pergunta",
+   "texto": "O NÚMERO QUE *ASSUSTA*",
+   "sub": "o que o medidor mostrou",
+   "secao": [
+    "A MEDIDA",
+    "QUANTOS *WATTS*"
+   ],
+   "varre": true
+  },
+  {
+   "em": "Um",
+   "tipo": "numero",
+   "valor": "10 W",
+   "rotulo": "um carregador comum",
+   "fonte": "medição própria",
+   "som": "pop"
+  },
+  {
+   "em": "rápido",
+   "tipo": "numero",
+   "valor": "65 W",
+   "rotulo": "o mais rápido do teste",
+   "fonte": "medição própria"
+  },
+  {
+   "em": "Segundo",
+   "tipo": "prova",
+   "img": "fabricante.png",
+   "destaque_em": "aguenta.",
+   "fonte": "example.com · 2026"
+  },
+  {
+   "em": "Mas",
+   "tipo": "video",
+   "src": "T2",
+   "de": 4.0,
+   "mov": "in",
+   "som": "whoosh"
+  },
+  {
+   "em": "Então,",
+   "tipo": "pergunta",
+   "texto": "O QUE *FAZER*?",
+   "secao": [
+    "NA PRÁTICA",
+    "TRÊS *CUIDADOS*"
+   ],
+   "varre": true
+  },
+  {
+   "em": "Use",
+   "tipo": "lista",
+   "estilo": "fluxo",
+   "itens": [
+    [
+     "cabo",
+     "CABO CERTO"
+    ],
+    [
+     "capa",
+     "SEM CAPA"
+    ],
+    [
+     "travesseiro.",
+     "NADA EMBAIXO"
+    ]
+   ],
+   "som": "pop"
+  },
+  {
+   "em": "Parece",
+   "tipo": "impacto",
+   "texto": "*SIMPLES*.",
+   "som": "impacto"
+  },
+  {
+   "em": "Se",
+   "tipo": "video",
+   "src": "T1",
+   "de": 8.0,
+   "mov": "out"
+  }
+ ]
+}

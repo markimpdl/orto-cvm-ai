@@ -1,0 +1,20 @@
+{
+  "enabledMcpjsonServers": ["cvm"],
+  "permissions": {
+    "allow": [
+      "mcp__cvm__list_trends",
+      "mcp__cvm__get_project",
+      "mcp__cvm__save_script",
+      "mcp__cvm__save_packaging",
+      "mcp__cvm__save_seo",
+      "mcp__cvm__set_job_state",
+      "mcp__cvm__performance_summary",
+      "mcp__cvm__list_channels",
+      "mcp__cvm__save_trend_analysis",
+      "WebSearch",
+      "Agent",
+      "Skill",
+      "WebFetch"
+    ]
+  }
+}

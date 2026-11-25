@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-15T10:30:00Z",
+  "title": "Design System: Orto CVM",
+  "extensions": {
+    "colorMeta": {
+      "go": { "role": "primary", "displayName": "Verde Sinal-Aberto", "canonical": "#00843d", "tonalRamp": ["#00602c", "#006b31", "#00843d", "#2f9e60", "#6bbd8f", "#a9dbbe", "#e3f2ea", "#f2faf5"] },
+      "alert": { "role": "secondary", "displayName": "Vermelho Atenção", "canonical": "#d6001c", "tonalRamp": ["#7a0010", "#a10016", "#d6001c", "#ff3b4e", "#ff7a87", "#ffb3ba", "#fde7ea", "#fff4f5"] },
+      "claude-text": { "role": "tertiary", "displayName": "Lilás Claude", "canonical": "#4b2a99", "tonalRamp": ["#2e1a60", "#4b2a99", "#6a4cc0", "#8e78d4", "#b3a6e4", "#d6cff2", "#eee8fb", "#f7f4fd"] },
+      "ink": { "role": "neutral", "displayName": "Tinta", "canonical": "#111214", "tonalRamp": ["#111214", "#2a2c30", "#3b3f45", "#5b6068", "#c9ccd1", "#e6e7ea", "#f0f1f3", "#f5f5f2"] },
+      "paper": { "role": "neutral", "displayName": "Papel", "canonical": "#f5f5f2" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Título da página (.h1), um por tela." },
+      "headline": { "displayName": "Headline", "purpose": "Título de cartão ou seção (.h2)." },
+      "body": { "displayName": "Body", "purpose": "Botões, navegação e texto corrido." },
+      "label": { "displayName": "Label", "purpose": "Pills, chips de etapa, metadados." },
+      "overline": { "displayName": "Overline", "purpose": "Rótulo de grupo na barra lateral, caixa alta." }
+    },
+    "shadows": [
+      { "name": "fio", "value": "0 1px 2px rgba(0,0,0,0.08)", "purpose": "Miniaturas e pequenos elementos sobre o papel." },
+      { "name": "flutuante", "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)", "purpose": "Só camadas que flutuam sobre o conteúdo." }
+    ],
+    "motion": [],
+    "breakpoints": [
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão padrão", "kind": "button", "refersTo": "button",
+      "description": "Ação comum; branco com borda.",
+      "html": "<button class=\"ds-btn\">Baixar thumbnail</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 18px; border-radius:10px; border:1px solid #d9dbdf; background:#ffffff; color:#111214; font:600 15px/1 Figtree, system-ui, sans-serif; cursor:pointer; } .ds-btn:hover { background:#f0f1f3; } .ds-btn:focus-visible { outline:3px solid #00843d; outline-offset:2px; }"
+    },
+    {
+      "name": "Botão principal (go)", "kind": "button", "refersTo": "button-go",
+      "description": "A única ação principal da área.",
+      "html": "<button class=\"ds-btn-go\">Aprovar roteiro</button>",
+      "css": ".ds-btn-go { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 18px; border-radius:10px; border:1px solid #00843d; background:#00843d; color:#fff; font:600 15px/1 Figtree, system-ui, sans-serif; cursor:pointer; } .ds-btn-go:hover { background:#006b31; border-color:#006b31; } .ds-btn-go:focus-visible { outline:3px solid #00843d; outline-offset:2px; }"
+    },
+    {
+      "name": "Botão escuro (ink)", "kind": "button", "refersTo": "button-ink",
+      "description": "Seleção ativa e ações secundárias fortes.",
+      "html": "<button class=\"ds-btn-ink\">PT</button>",
+      "css": ".ds-btn-ink { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 18px; border-radius:10px; border:1px solid #111214; background:#111214; color:#fff; font:600 15px/1 Figtree, system-ui, sans-serif; cursor:pointer; } .ds-btn-ink:hover { background:#2a2c30; } .ds-btn-ink:focus-visible { outline:3px solid #00843d; outline-offset:2px; }"
+    },
+    {
+      "name": "Campo", "kind": "input", "refersTo": "input",
+      "description": "Campo de texto padrão.",
+      "html": "<input class=\"ds-input\" placeholder=\"Cole aqui depois de publicar\">",
+      "css": ".ds-input { min-height:44px; padding:0 14px; border-radius:12px; border:1px solid #c9ccd1; background:#fff; color:#111214; font:400 16px Figtree, system-ui, sans-serif; } .ds-input:focus-visible { outline:3px solid #00843d; outline-offset:2px; }"
+    },
+    {
+      "name": "Pills de estado", "kind": "chip", "refersTo": "pill",
+      "description": "Estado dito em palavras.",
+      "html": "<span class=\"ds-pill\">na fila</span> <span class=\"ds-pill ds-ok\">pronto</span> <span class=\"ds-pill ds-warn\">pausado</span> <span class=\"ds-pill ds-err\">erro</span> <span class=\"ds-tag-claude\">Claude</span>",
+      "css": ".ds-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:#f0f1f3; color:#3b3f45; font:600 13px Figtree, system-ui, sans-serif; } .ds-ok { background:#e3f2ea; color:#00602c; } .ds-warn { color:#8a4b00; } .ds-err { background:#fde7ea; color:#a10016; } .ds-tag-claude { padding:1px 6px; border-radius:999px; background:#eee8fb; color:#4b2a99; font:600 11px Figtree, system-ui, sans-serif; }"
+    },
+    {
+      "name": "Cartão", "kind": "card", "refersTo": "card",
+      "description": "Superfície branca plana com borda fina.",
+      "html": "<div class=\"ds-card\"><h2 class=\"ds-h2\">Sua vez</h2><p>3 roteiros esperando aprovação.</p></div>",
+      "css": ".ds-card { padding:20px; border-radius:16px; border:1px solid #e6e7ea; background:#fff; color:#3b3f45; font:400 15px/1.5 Figtree, system-ui, sans-serif; } .ds-h2 { margin:0 0 8px; color:#111214; font:600 20px/1.2 Saira, system-ui, sans-serif; }"
+    },
+    {
+      "name": "Item de navegação", "kind": "nav", "refersTo": "nav-item-active",
+      "description": "Barra lateral: ativo em tinta com ponto verde.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-active\" href=\"#\"><span class=\"ds-dot\"></span>Fila<span class=\"ds-count\">4</span></a><a class=\"ds-nav-item\" href=\"#\"><span class=\"ds-dot\"></span>Sua vez<span class=\"ds-count ds-red\">2</span></a></nav>",
+      "css": ".ds-nav { display:flex; flex-direction:column; gap:4px; width:208px; } .ds-nav-item { display:flex; align-items:center; gap:12px; min-height:44px; padding:0 14px; border-radius:10px; color:#111214; text-decoration:none; font:500 15px Figtree, system-ui, sans-serif; } .ds-nav-item:hover { background:#ecedea; } .ds-active, .ds-active:hover { background:#111214; color:#fff; } .ds-dot { width:8px; height:8px; border-radius:999px; background:#c9ccd1; } .ds-active .ds-dot { background:#00843d; } .ds-count { margin-left:auto; min-width:22px; height:22px; padding:0 6px; border-radius:999px; background:#e6e7ea; color:#111214; font:600 12px/22px Figtree, system-ui, sans-serif; text-align:center; } .ds-red { background:#d6001c; color:#fff; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "A Mesa de Produção",
+    "overview": "O Orto CVM é a mesa de controle de uma fábrica de vídeos que roda no próprio Mac: a pessoa entra para ver o que está na fila, aprovar o que é a vez dela e publicar. A interface é uma ferramenta de trabalho, lida em sessões curtas e frequentes. Papel quente-neutro, cartões brancos e tinta quase preta; a cor só aparece quando carrega significado de estado.",
+    "keyCharacteristics": [
+      "Fundo papel neutro, superfícies brancas planas, bordas finas cinza-claras.",
+      "Uma cor de ação (verde) e uma de alarme (vermelho); o resto é escala de cinzas.",
+      "Duas famílias: Saira para títulos, Figtree para todo o resto.",
+      "Controles grandes (44 px) e cantos suaves de 10–16 px.",
+      "Estados ditos com palavras e pills, não só com cor."
+    ],
+    "rules": [
+      { "name": "A Regra do Sinal Verde", "body": "O verde só aparece onde a pessoa pode seguir: a ação principal da tela, o item ativo, um sucesso. Se tudo é verde, nada é.", "section": "colors" },
+      { "name": "A Regra do Vermelho Contado", "body": "Vermelho é para erro ou para um número que pede ação agora. Nunca decorativo.", "section": "colors" },
+      { "name": "A Regra das Duas Vozes", "body": "Saira só em títulos (.h1, .h2); qualquer outro texto é Figtree.", "section": "typography" },
+      { "name": "A Regra do Plano", "body": "Cartões não têm sombra; separação é borda de 1 px em line sobre o papel.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar .btn-go para a única ação principal de cada área, e .btn para o resto.",
+      "Do dizer o estado em palavras numa pill (pausado, pronto, erro) além da cor.",
+      "Do manter alvos de toque com 44px de altura mínima (40px só no .btn-sm).",
+      "Do usar os tokens (bg-surface, text-muted, border-line, bg-go) em vez de hex soltos.",
+      "Do passar todo texto novo por t() e acrescentar a tradução em lib/i18n-en.ts."
+    ],
+    "donts": [
+      "Don't pôr sombra em cartões; a separação é a borda line.",
+      "Don't usar verde ou vermelho como decoração.",
+      "Don't usar Saira fora de títulos.",
+      "Don't usar o lilás do Claude para outra coisa que não seja marcar etapas do Claude."
+    ]
+  }
+}

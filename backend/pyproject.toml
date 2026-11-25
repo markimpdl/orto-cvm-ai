@@ -1,0 +1,96 @@
+[project]
+name = "cvm"
+version = "0.1.0"
+description = "Content Video Maker — local AI content factory backend"
+authors = [
+    { name = "Orto CVM" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlmodel>=0.0.22",
+    "huey>=2.5",
+    "httpx>=0.27",
+    "feedparser>=6.0",
+    "pydantic-settings>=2.4",
+    "mcp>=1.2,<2",
+    "python-multipart>=0.0.9",
+    "playwright>=1.47",
+    "rapidfuzz>=3.9",
+    "selectolax>=0.3",
+    "pyyaml>=6",
+    "yt-dlp[curl-cffi,default]>=2026.11",
+    "pillow>=12.3.0",
+    "mlx-audio>=0.5.8; sys_platform == 'darwin'",
+    "mlx-whisper>=0.4.3; sys_platform == 'darwin'",
+    "mflux>=0.22.0; sys_platform == 'darwin'",
+    "soundfile>=0.14.0",
+    "numpy>=2.5.4",
+    "google-api-python-client>=2.201.0",
+    "google-auth-oauthlib>=1.5.0",
+    "num2words>=0.5.14",
+    "psutil>=6",  # stopping leftover `claude -p` runs on Mac and Windows
+    "matplotlib>=3.11.2",
+    # CUDA backend (Windows/Linux + NVIDIA); the Mac keeps the MLX engines above
+    "torch>=2.7",  # CLIP check on the Mac (MPS); CUDA wheels elsewhere
+    "torchaudio>=2.7; sys_platform != 'darwin'",
+    "torchvision>=0.22; sys_platform != 'darwin'",  # RobustVideoMatting (presenter cut-out) on CUDA
+    "opencv-python-headless>=4.10; sys_platform != 'darwin'",
+    "transformers>=4.50; sys_platform != 'darwin'",
+    "accelerate>=1.5; sys_platform != 'darwin'",
+    "voxcpm>=2.0; sys_platform != 'darwin'",  # VoxCPM2 (local voices) on CUDA
+    "diffusers>=0.32; sys_platform != 'darwin'",
+    "bitsandbytes>=0.45; sys_platform != 'darwin'",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "respx>=0.21"]
+# voice fine-tuning on the CUDA PC (scripts/voice_finetune.py runs VoxCPM's own training script): uv sync --group voicetrain
+voicetrain = [
+    "tensorboardX>=2.6; sys_platform != 'darwin'",
+    "argbind>=0.3.9; sys_platform != 'darwin'",
+    "librosa>=0.10; sys_platform != 'darwin'",
+]
+
+[project.scripts]
+cvm-api = "cvm.main:run"
+cvm-mcp = "cvm.mcp_server.server:main"
+cvm-worker = "cvm.workers.run:main"
+cvm-export = "cvm.portable:main_export"
+cvm-import = "cvm.portable:main_import"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[tool.uv]
+# Keep the newer torch (Blackwell kernels), numpy 2 and transformers/diffusers over older pins of the voice
+# packages; gradio is only a demo UI dependency.
+override-dependencies = [
+    "torch>=2.7",
+    "torchaudio>=2.7; sys_platform != 'darwin'",
+    "torchvision>=0.22; sys_platform != 'darwin'",
+    "numpy>=2.5.4",
+    "transformers>=4.50",
+    "diffusers>=0.29",
+    "safetensors>=0.5",
+    "gradio; python_version < '0'",
+]
+
+[tool.uv.sources]
+# RTX 50 series (Blackwell, sm_120) needs the CUDA 12.8 wheels
+torch = [{ index = "pytorch-cu128", marker = "sys_platform != 'darwin'" }]
+torchaudio = [{ index = "pytorch-cu128", marker = "sys_platform != 'darwin'" }]
+torchvision = [{ index = "pytorch-cu128", marker = "sys_platform != 'darwin'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

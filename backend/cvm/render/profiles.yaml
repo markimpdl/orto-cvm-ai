@@ -1,0 +1,33 @@
+# Output profiles per platform. Composition happens once per orientation; profiles trim/encode it.
+youtube_shorts:
+  label: YouTube Shorts
+  width: 1080
+  height: 1920
+  fps: 30
+  max_seconds: 180
+  video_bitrate: 12M
+  caption_margin_bottom: 420   # keep clear of the Shorts UI
+youtube:
+  label: YouTube (longo)
+  width: 1920
+  height: 1080
+  fps: 30
+  max_seconds: null
+  video_bitrate: 16M
+  caption_margin_bottom: 110
+instagram:
+  label: Instagram Reels
+  width: 1080
+  height: 1920
+  fps: 30
+  max_seconds: 90              # Reels past ~3 min stop being recommended; 90 s keeps reach
+  video_bitrate: 10M
+  caption_margin_bottom: 480
+tiktok:
+  label: TikTok
+  width: 1080
+  height: 1920
+  fps: 30
+  max_seconds: 180
+  video_bitrate: 10M
+  caption_margin_bottom: 500

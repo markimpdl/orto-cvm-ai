@@ -1,0 +1,388 @@
+# Narração calma, como contando uma história
+Numa cidadezinha do interior, havia uma padaria que abria todos os dias às cinco da manhã, fizesse chuva ou sol.
+O dono, seu Antônio, chegava ainda no escuro, acendia a luz amarela do balcão e ligava o rádio bem baixinho.
+A primeira fornada era sempre de pão francês, e o cheiro se espalhava pela rua antes mesmo de o sol aparecer.
+Os primeiros clientes eram os mesmos de sempre: o carteiro, a enfermeira do plantão e um senhor que passeava com o cachorro.
+Cada um tinha o seu pedido, e seu Antônio já separava o saquinho antes que eles abrissem a boca.
+Nas tardes de inverno, a padaria virava ponto de encontro, com café passado no coador e bolo de fubá ainda quente.
+As crianças saíam da escola e paravam na vitrine, contando moedas para ver se dava para um sonho de creme.
+Seu Antônio sempre dava um jeito, e quando faltavam dez centavos, ele fingia que não tinha visto.
+Um dia, chegou à cidade uma moça que tinha aprendido a fazer pão de fermentação natural numa viagem longa.
+Ninguém na cidade tinha ouvido falar daquilo, e muita gente achou que era só moda de cidade grande.
+Ela pediu para usar o forno nas horas vagas, e ele, curioso, disse que sim, desde que ela ensinasse o segredo.
+Durante semanas, os dois trocaram receitas, erros e risadas, enquanto a massa crescia devagar dentro das tigelas.
+Ela dizia que pão bom não tem pressa, e ele respondia que freguês com fome também não.
+O primeiro pão de fermentação natural saiu torto, com a casca queimada de um lado e crua do outro.
+Mesmo assim, eles cortaram, passaram manteiga e comeram ali mesmo, em pé, olhando um para o outro.
+Aos poucos, as fornadas foram melhorando, e a cidade inteira passou a encomendar o pão novo para o fim de semana.
+A fila de sábado começava a dobrar a esquina, e as pessoas aproveitavam para conversar enquanto esperavam.
+Teve gente que se conheceu naquela fila, teve gente que fez as pazes, e teve até um pedido de casamento.
+Os anos passaram, o rádio foi trocado por uma caixinha de som, mas a luz amarela do balcão continuou a mesma.
+Seu Antônio começou a chegar um pouco mais tarde, e a moça passou a abrir a padaria às cinco em ponto.
+Ela manteve o pão francês, o bolo de fubá e o costume de fingir que não via quando faltavam dez centavos.
+Numa manhã de neblina, o velho padeiro sentou num banquinho perto do forno e ficou só observando.
+Ele viu as mãos dela dobrando a massa do mesmo jeito que ele tinha ensinado, e sorriu em silêncio.
+Lá fora, o carteiro passou de bicicleta, buzinou duas vezes e acenou como fazia havia trinta anos.
+A cidade tinha mudado, as ruas tinham asfalto novo e a escola ganhou um prédio maior.
+Mas, de alguma forma, aquela esquina continuava igual, com cheiro de pão e conversa fiada.
+Talvez seja isso que faz um lugar virar lar: pequenas coisas que se repetem, sem ninguém perceber.
+Quando o sol finalmente apareceu, a primeira fornada já estava no balcão, dourada e estalando.
+E a vida seguiu, devagar, do jeito que os dois sempre gostaram.
+
+# Explicação didática, como professor
+Vamos começar pelo básico: o que é, afinal, uma engine de jogo e por que todo mundo fala tanto dela?
+Uma engine é o conjunto de ferramentas que cuida da física, da iluminação, do som e da renderização do jogo.
+Em vez de reinventar a roda toda vez, o estúdio usa essa base e se concentra no que deixa o jogo único.
+A Rockstar, por exemplo, tem a sua própria engine, chamada RAGE, que vem evoluindo desde a época de GTA quatro.
+Já muitos estúdios menores preferem usar a Unreal Engine ou a Unity, que são ferramentas abertas para qualquer um.
+Agora presta atenção numa diferença importante entre resolução e taxa de quadros, porque elas confundem muita gente.
+A resolução é quantos pixels aparecem na tela, enquanto a taxa de quadros é quantas imagens por segundo o jogo desenha.
+Um jogo em quatro K bonito, mas rodando a trinta quadros, pode parecer mais travado que um jogo em mil e oitenta a sessenta.
+Por isso os consoles costumam oferecer dois modos: o modo qualidade e o modo desempenho.
+No modo qualidade você ganha detalhe, sombras e reflexos; no modo desempenho você ganha fluidez e resposta no controle.
+Outro conceito que vale entender é o tal do ray tracing, que simula o caminho real da luz no ambiente.
+Na prática, ele faz reflexos em poças, vidros e carros ficarem muito mais convincentes, mas cobra caro do processador gráfico.
+Falando em processador gráfico, a Nvidia popularizou uma técnica chamada DLSS, que usa inteligência artificial para aumentar a resolução.
+O jogo é desenhado numa resolução menor e a rede neural reconstrói a imagem, como se fosse um upscale inteligente.
+A AMD tem a sua versão, chamada FSR, e a Sony também criou a dela para o PlayStation cinco Pro.
+Agora mudando de assunto, vamos entender como funciona o orçamento de uma casa de um jeito simples.
+O aluguel ou a prestação do imóvel costuma ser, de longe, o maior gasto do mês.
+Por isso a regra mais comum é não comprometer mais de um terço da renda só com moradia.
+A conta de luz sobe bastante no verão, por causa do ar-condicionado e do chuveiro elétrico no inverno.
+Já mercado, transporte e internet são gastos que parecem pequenos, mas somados pesam muito.
+Uma boa ideia é anotar tudo durante um mês inteiro, até o cafezinho da padaria.
+No fim do mês, você separa o que é necessário, o que é conforto e o que foi pura empolgação.
+E uma dica de professor chato: guarde uma reserva de emergência antes de pensar em qualquer investimento.
+Voltando para a tecnologia, vamos falar de modelos de linguagem, como o ChatGPT, o Claude e o Gemini.
+Esses modelos aprendem padrões de texto e, quando você escreve uma pergunta, eles preveem a resposta palavra por palavra.
+Eles não pensam como a gente, mas conseguem organizar ideias, resumir documentos e até escrever código.
+O segredo para usar bem é dar contexto: quanto mais claro você explica o que quer, melhor o resultado.
+E o mais importante de tudo é sempre conferir o que eles dizem, porque às vezes eles inventam com muita confiança.
+Resumindo a aula de hoje: engine é a base, taxa de quadros é fluidez, e inteligência artificial é ferramenta, não mágica.
+Se ficou alguma dúvida, volta um pouquinho e escuta de novo, porque esses conceitos aparecem em quase todo vídeo.
+
+# Empolgado, gancho de vídeo, energia alta
+Gente, o que eu vou mostrar hoje simplesmente mudou a forma como eu enxergo os jogos de mundo aberto!
+Para tudo, porque o trailer novo tem um detalhe escondido que quase ninguém percebeu!
+Olha só esse carro na estrada, olha o reflexo do sol na lataria, isso é absurdo demais!
+Eu assisti esse trecho umas vinte vezes e a cada vez eu encontro uma coisa nova!
+Hoje a gente vai subir a estrada de serra mais bonita do país, e vocês vão comigo!
+Trinta e cinco graus lá fora, janela aberta e uma playlist que ninguém pediu, bora!
+Esse é um dos lugares mais incríveis que dá para visitar de carro, e quase ninguém fala dele!
+Eu testei uma inteligência artificial que gera vídeo num computador comum, sem pagar nada, e o resultado me assustou!
+Fica até o final, porque eu vou revelar quanto custa de verdade manter esse hobby por um mês!
+Vocês não estão preparados para o tamanho do mapa desse jogo novo!
+Eu nunca vi uma cidade de videogame tão viva, com tanta gente, tanto trânsito e tanto caos!
+Hoje é dia de parque de diversões, e eu vou andar na montanha-russa mais rápida do continente!
+Que vista é essa, olha esse pôr do sol em cima das montanhas!
+Eu passei uma semana inteira usando só inteligência artificial para trabalhar, e o resultado foi inacreditável!
+Esse gadget chegou ontem e eu já não consigo viver sem ele!
+Se você gosta de jogo, de tecnologia e de histórias malucas, você chegou no lugar certo!
+Preparei uma comparação lado a lado que vai fazer muita gente repensar a compra do próximo console!
+Agora sim, finalmente, depois de anos de espera, o momento chegou!
+Eu entrei num carro de corrida de verdade num autódromo, e o coração quase saiu pela boca!
+Hoje eu vou responder a pergunta que vocês mais mandam: vale a pena montar um computador em casa?
+Tem uma surpresa gigante no final desse vídeo, e eu não vou dar nenhuma dica antes!
+Esse é o setup mais completo que eu já montei, e eu vou mostrar cada peça!
+A praia à noite é outro planeta, e eu vou provar isso para vocês agora mesmo!
+Peguei o carro, enchi o tanque, comprei água e partiu litoral, rumo à praia mais bonita do estado!
+Essa cena do trailer tem uma referência escondida que só fã das antigas vai entender!
+Eu fiz um jogo inteiro em um fim de semana usando ajuda de inteligência artificial, e vocês vão jogar!
+Olha o tamanho dessa tela, olha a qualidade dessa imagem, é coisa de outro mundo!
+Bora descobrir juntos se essa promessa do estúdio é verdade ou só marketing!
+Isso aqui é o que eu chamo de aventura, e vocês vão ver tudo de perto!
+Prepara a pipoca, ajeita a cadeira e vem comigo, porque hoje o vídeo está recheado!
+
+# Opinião forte e humor
+Sinceramente, quem diz que gráfico não importa nunca jogou um jogo bonito de verdade.
+Mas também acho uma piada estúdio gastar milhões em reflexo de poça e esquecer de fazer a história ser boa.
+Eu não aguento mais jogo que lança pela metade e promete consertar tudo numa atualização futura.
+Pagar preço cheio para ser testador beta é uma coisa que eu me recuso a aceitar.
+Olha, eu vou ser polêmico: os jogos antigos de uma série quase sempre são melhores que os novos, e pode vir xingar nos comentários.
+Tinha academia, tinha bicicleta, tinha cabelereiro, tinha tudo, e isso em dois mil e quatro, cara!
+Agora, se o próximo jogo não tiver um modo história gigante, eu vou ficar muito chateado.
+Microtransação em jogo single player deveria ser proibida por lei, na minha humilde opinião.
+Quem inventou que carro precisa ter tela de vinte polegadas no painel claramente nunca dirigiu sob sol forte.
+A tela esquenta tanto que dá para fritar um ovo e ainda servir com torrada.
+No auge do verão, você não sai de casa, você é transportado de um ar-condicionado para outro.
+O carro tem dois estados: estacionado no sol, que é forno, e estacionado na sombra, que é um sonho que nunca acontece.
+A briga por uma vaga na sombra no estacionamento do shopping é mais intensa que qualquer final de campeonato.
+Inteligência artificial não vai roubar o seu emprego, mas uma pessoa que sabe usar inteligência artificial talvez roube.
+E quem acha que a máquina vai programar tudo sozinha, claramente nunca viu ela inventar uma função que não existe.
+Ontem eu pedi um código simples e a resposta veio linda, elegante, documentada e completamente errada.
+Eu acho uma loucura gastar oito mil reais num celular que faz exatamente o mesmo que o do ano passado.
+A única coisa que muda é a cor, e a cor nova sempre tem um nome tipo titânio do amanhecer.
+Gadget bom é aquele que resolve um problema, não aquele que cria três problemas novos para justificar o próximo gadget.
+Como diz o ditado, quem compra o que não precisa logo vende o que precisa.
+Fone com cancelamento de ruído é a melhor invenção da humanidade, e eu não aceito discussão.
+Sinceramente, café de cápsula é ótimo até a hora em que você faz as contas de quanto custa cada xícara.
+Colocar ketchup na pizza, para mim, é crime inafiançável.
+E abacaxi na pizza é aquela coisa: eu não julgo, mas eu também não fico na mesma mesa.
+Console versus computador é a discussão mais inútil da internet, porque o melhor é o que você consegue pagar.
+Mas se você me perguntar, eu jogo deitado no sofá e trabalho no computador sentado feito gente séria.
+Quem fala que desenvolvedor de jogo passa o dia jogando nunca viu alguém caçando bug às três da manhã.
+Trabalhar com jogo é lindo, mas é como ser cozinheiro: você perde um pouco a vontade de comer fora.
+Se os estúdios me ouvissem, a primeira coisa que eu pediria seria mais missão de assalto bem planejada.
+E a segunda seria um botão para pular aquelas missões de seguir alguém andando devagar pela calçada.
+
+# Perguntas e respostas, com entonação de pergunta
+Será que vale a pena comprar um console novo só para jogar um lançamento?
+Depende: você tem uma televisão boa, com quatro K e taxa de atualização alta?
+Se a resposta for não, será que não é melhor investir primeiro na tela?
+E quem tem um computador potente, deve esperar a versão para computador ou jogar logo no console?
+Quanto tempo você aguenta ver spoiler na internet antes de desistir e comprar o jogo?
+Você já parou para pensar quanto uma família gasta, de verdade, com assinaturas de streaming num ano?
+Será que vale a pena pagar por cinco serviços ao mesmo tempo, se você só assiste a um?
+E o carro, é melhor comprar um novo, um usado ou simplesmente alugar por mês?
+Você sabia que muita gente troca de carro como quem troca de celular?
+Por que será que todo mundo ama tanto um carro grande, mesmo morando na cidade?
+Será que dá para viver numa cidade grande sem carro, só usando ônibus, metrô e bicicleta?
+Já pensou como seria passar o verão inteiro sem conseguir caminhar na rua durante o dia?
+Você prefere calor seco de quarenta graus ou frio úmido de cinco graus?
+E aí, qual foi o jogo que mais te marcou na infância?
+Foi um jogo de corrida, de luta, de futebol ou aquele de plataforma que ninguém conseguia terminar?
+Você acha que inteligência artificial vai mudar a forma como os jogos são feitos?
+Será que os personagens vão conversar com a gente de verdade, sem roteiro fixo?
+E se o vendedor da loja no jogo lembrar de você e cobrar mais caro porque você foi grosso da última vez?
+Você confiaria numa inteligência artificial para escrever o código do seu aplicativo inteiro?
+Quem vai consertar quando o código quebrar numa sexta-feira à noite?
+Por que todo lançamento grande vem sempre acompanhado de atraso?
+Será que é falta de planejamento ou é o jogo que ficou maior do que todo mundo imaginava?
+O que você faria se ganhasse uma passagem só de ida para qualquer país amanhã?
+Iria direto para uma cidade grande ver os prédios, ou para o interior conhecer o lado mais tranquilo?
+Já experimentou fruta tirada do pé, daquelas que ainda estão quentes do sol?
+E o café coado na hora, você troca por qualquer cafeteira moderna?
+Você sabe qual é a diferença entre um cão de guarda e um cão de companhia?
+Quantos gadgets você tem em casa que comprou empolgado e nunca mais usou?
+Você é do time que lê o manual inteiro ou do time que aperta todos os botões até descobrir?
+Afinal, quem ganha essa: a nostalgia dos jogos antigos ou a tecnologia dos jogos novos?
+
+# Suspense e mistério
+Tem uma coisa nesse trailer que ninguém conseguiu explicar até hoje.
+Ela aparece por menos de um segundo, no canto da tela, e some antes que você perceba.
+Alguém pausou o vídeo quadro por quadro, e o que encontrou deixou muita gente sem dormir.
+No meio de uma serra, existe uma estrada que simplesmente termina no mato, sem placa e sem aviso.
+Ninguém sabe dizer direito quem construiu, nem por que ela foi abandonada.
+Os moradores mais antigos contam que, nas noites sem lua, dá para ouvir um motor ligado ao longe.
+Mas quando você olha para o horizonte, não tem farol, não tem poeira, não tem nada.
+Um grupo de amigos foi até lá numa sexta-feira à noite, com lanterna, garrafa de água e muita coragem.
+O vento parou de repente, e o silêncio ficou tão pesado que dava para ouvir o próprio coração.
+Foi aí que os celulares perderam o sinal, e o mapa do carro começou a girar sem parar.
+Eles juram que viram uma luz piscando atrás do morro, três vezes, sempre no mesmo ritmo.
+Quando chegaram mais perto, encontraram apenas pegadas na terra, que começavam do nada e terminavam do nada.
+Até hoje ninguém sabe o que era, e nenhum deles tem a menor vontade de voltar para descobrir.
+Na indústria de jogos, também existem mistérios que nunca foram resolvidos.
+Arquivos escondidos no código, mensagens secretas e fases inteiras que foram cortadas na última hora.
+Uma vez, numa equipe de programadores, alguém encontrou uma pasta com um nome estranho e nenhum arquivo dentro.
+Ninguém sabia quem tinha criado, e o histórico de alterações estava completamente vazio.
+O mais estranho é que, toda manhã, a data de modificação daquela pasta mudava sozinha.
+Perguntaram para todo mundo, chamaram o pessoal da infraestrutura, e ninguém tinha resposta.
+Depois de semanas, descobriram a verdade, e ela era muito mais simples, e muito mais assustadora, do que parecia.
+Era um script esquecido, rodando num servidor que todo mundo achava que tinha sido desligado anos antes.
+Quantas máquinas esquecidas estão ligadas agora mesmo, fazendo coisas que ninguém lembra de ter pedido?
+Em algumas estradas do mundo, dizem, o carro sobe a ladeira sozinho quando você deixa em ponto morto.
+Alguns chamam de ilusão de ótica, outros juram que é alguma força misteriosa do lugar.
+Teve gente que testou, com o celular gravando, e o resultado você vai ver daqui a pouco.
+Mas antes, uma pergunta: e se tudo o que a gente vê nos trailers for só uma parte da história?
+E se o estúdio estiver escondendo o verdadeiro protagonista bem diante dos nossos olhos?
+Os sinais estão lá, espalhados, esperando alguém atento o suficiente para juntar as peças.
+Talvez seja só coincidência, talvez não seja.
+Fica comigo, porque a próxima pista é a mais estranha de todas.
+
+# Conversa casual com amigo
+Cara, você não vai acreditar no que aconteceu ontem no supermercado.
+Eu fui comprar só um pão e um leite, e saí de lá com uma melancia, três abacates e um ventilador portátil.
+Tipo assim, eu nem sei explicar, quando vi o carrinho já estava cheio.
+E aí, como foi o seu fim de semana, conseguiu descansar ou ficou jogando até de madrugada?
+Eu fiquei jogando, óbvio, e ainda dormi no sofá com o controle na mão.
+Olha só, outro dia uns vizinhos chamaram a rua inteira para fazer um churrasco na praça.
+Levamos carvão, cadeira de praia, caixa térmica, e esquecemos simplesmente a carne.
+A gente ficou uns dez minutos olhando um para a cara do outro até alguém começar a rir.
+No fim, pedimos comida pelo aplicativo e o entregador nos achou no meio da praça, acredita?
+Esse pessoal das entregas é de outro planeta, chega em qualquer lugar, a qualquer hora.
+Sinceramente, uma das coisas que eu mais gosto no fim de semana é o pão de queijo quentinho de manhã.
+Eu até tentei fazer em casa, mas ficou parecendo uma pedrinha de queijo meio triste.
+Uma tia me mandou a receita por áudio, um áudio de oito minutos, cheio de tipo assim e sabe aquela coisa.
+Ah, e falando em áudio, você também tem aquele amigo que manda áudio de cinco minutos para dizer que vai atrasar?
+Lá na rua, a vizinhança é de tudo quanto é lugar: tem indiano, filipino, libanês, egípcio, inglês e brasileiro.
+A gente se comunica num português misturado, com um pouco de inglês e muita mímica.
+Outro dia alguém soltou um mamma mia quando a churrasqueira apagou e todo mundo começou a usar também.
+Agora toda vez que alguma coisa dá errado, alguém fala mamma mia com sotaque diferente, é sensacional.
+E o vizinho libanês me ensinou a falar habibi de um jeito que parece que eu nasci lá.
+Ontem ele me disse yalla, yalla, e eu entendi na hora que a festa já tinha começado sem mim.
+Mano, você já reparou como o tempo passa rápido quando a gente está fazendo uma coisa que gosta?
+Eu sentei para editar um vídeo às oito da noite e quando olhei o relógio eram duas da manhã.
+O pior é que eu ainda tinha compromisso cedo no dia seguinte, e fui com a cara amassada.
+Mas fazer o quê, né, a gente faz porque ama, e porque o café é bom.
+Se você vier para cá um dia, me avisa, que eu te levo para comer um pastel de feira de respeito.
+Tem uma barraquinha na feira de domingo que faz o melhor pastel da cidade, e custa menos que um café chique.
+Depois a gente passa na praça, toma um caldo de cana e fica de conversa até o sol baixar.
+Ah, e não esquece de trazer protetor solar, porque o sol não perdoa ninguém.
+Bom, eu falo demais, né, mas é que com você eu fico à vontade.
+Vamos marcar alguma coisa logo, nem que seja uma partida online numa terça à noite.
+
+# Listas e números
+Hoje eu vou listar as cinco coisas que todo mundo deveria levar numa viagem de fim de semana.
+Primeiro, um bom tênis; segundo, uma capa de chuva; terceiro, o carregador; quarto, uma garrafinha; e quinto, um mapa de papel.
+O aluguel de um apartamento de um quarto numa cidade grande pode variar entre mil e quinhentos e quatro mil reais por mês.
+Já uma casa com três quartos pode passar facilmente dos oito mil reais mensais em bairros mais procurados.
+No verão, a temperatura em algumas capitais chega a trinta e oito, trinta e nove, às vezes quarenta graus durante a tarde.
+A umidade, perto do mar, pode passar de oitenta por cento, e aí parece que você está respirando dentro de uma chaleira.
+Uma família média gasta, por mês, uns seiscentos reais de gasolina, dirigindo bastante.
+Um bom computador para isso tem trinta e dois gigas de memória, um processador de dezesseis núcleos e um disco de estado sólido de dois teras.
+Um Mac com quarenta e oito gigas de memória unificada roda modelos de inteligência artificial sem reclamar.
+Um modelo de linguagem com sete bilhões de parâmetros cabe tranquilamente num computador doméstico hoje em dia.
+Para gerar um vídeo de cinco segundos, um computador desses leva em torno de dois minutos.
+Três jogos que marcaram uma geração foram San Andreas, Red Dead Redemption dois e The Witcher três.
+Somando os três, tem gente com mais de mil e quinhentas horas de jogo, e sem nenhum arrependimento.
+GTA cinco foi lançado em dois mil e treze, e até hoje continua entre os jogos mais vendidos.
+Isso dá mais de uma década de vida para um único jogo, o que é praticamente um milagre na indústria.
+O trailer de GTA seis teve dezenas de milhões de visualizações em menos de um dia.
+Vamos às quatro coisas para levar num acampamento: água, lanterna, casaco e celular carregado.
+Sim, casaco, porque à noite na serra a temperatura pode cair para uns oito ou nove graus.
+Os três erros mais comuns de quem acabou de mudar de cidade são: alugar longe do trabalho, comprar carro caro e ignorar o clima.
+Uma corrida de aplicativo do centro até o aeroporto costuma ficar entre setenta e cem reais.
+Um café num lugar bacana sai por uns doze reais, e um pastel de feira por uns oito.
+Num ano normal, muita gente viaja duas ou três vezes, quase sempre para visitar a família.
+Um voo de São Paulo para Lisboa leva umas dez horas, o suficiente para uns quatro filmes.
+Para gravar um vídeo de dez minutos, é comum precisar de umas três horas de gravação e umas oito horas de edição.
+Isso dá quase um dia inteiro de trabalho para cada vídeo, sem contar roteiro e miniatura.
+Um canal novo pode começar com zero inscritos e, no primeiro mês, chegar a cento e doze, e cada um merece comemoração.
+Um estúdio caseiro completo pode ter quatro câmeras, dois microfones, três luzes e uma quantidade vergonhosa de cabos.
+Uma meta boa para o ano que vem é publicar dois vídeos por semana, sem perder a qualidade.
+Se eu tivesse que dar uma nota de zero a dez para esse gadget, eu daria oito e meio.
+Os um e meio que faltam ficam por conta da bateria fraca e do carregador que não vem na caixa.
+
+# Nomes estrangeiros e marcas
+A Rockstar Games, de Nova York, é a responsável por GTA, Red Dead Redemption e Max Payne.
+A Rockstar North, na Escócia, cuidou de boa parte do desenvolvimento dos jogos da série.
+Metal Gear Solid, Final Fantasy, Resident Evil e Street Fighter marcaram a era do PlayStation antigo.
+Hoje se joga no PlayStation cinco, no Xbox Series X e, de vez em quando, no Nintendo Switch.
+No computador, as placas mais comuns são as GeForce, da Nvidia, e as Radeon, da AMD.
+Para programar, muita gente usa Visual Studio Code, Python, TypeScript e, quando o projeto pede, C mais mais.
+Para inteligência artificial, existem o ChatGPT, o Claude, o Gemini e alguns modelos abertos como Llama e Qwen.
+Na parte de imagens, há Stable Diffusion, Midjourney e Flux, cada um com o seu estilo.
+Os motores mais famosos de jogo hoje são a Unreal Engine, da Epic Games, e a Unity.
+O Fortnite, também da Epic, virou praticamente uma plataforma de shows e eventos.
+Em Paris, os lugares mais conhecidos são o Louvre, a Torre Eiffel, Montmartre e o Champs-Élysées.
+Em Tóquio ficam Shibuya, Shinjuku, Akihabara, Asakusa e o templo Senso-ji.
+Em Nova York ficam o Central Park, a Times Square, o Brooklyn e a Estátua da Liberdade.
+Barcelona, mais ao sul da Europa, tem a Sagrada Família, o Park Güell e as Ramblas.
+Londres fica a pouco mais de duas horas de trem de Paris, e lá ficam o Big Ben, a Tower Bridge e o Hyde Park.
+Entre os carros, os mais comuns nas estradas são Toyota Corolla, Honda Civic, Volkswagen Golf e muitas picapes.
+Mas também aparece Lamborghini, Ferrari, Porsche, Bentley e Rolls-Royce em salões de automóveis pelo mundo.
+No mundo dos gadgets, são populares o iPhone, o MacBook, os fones da Sony e os relógios Garmin para correr.
+Também tem Samsung Galaxy, Google Pixel e Xiaomi, que fazem muito sucesso pelo preço.
+Para ouvir música, o Spotify é o mais usado, e para podcast, às vezes, o YouTube Music.
+As redes mais usadas por criadores de vídeo são YouTube, Instagram e TikTok.
+A Sony Interactive, a Microsoft Gaming e a Nintendo são as três gigantes dos consoles hoje.
+A Valve tem a Steam e o Steam Deck, um dos gadgets mais divertidos dos últimos anos.
+Entre os estúdios mais admirados, estão a Naughty Dog, a FromSoftware, a CD Projekt Red e a Insomniac.
+A Hugging Face é praticamente a biblioteca do mundo dos modelos abertos de inteligência artificial.
+No Brasil, uma geração inteira cresceu jogando no Mega Drive da Tectoy e no Super Nintendo.
+Hoje em dia, um café da manhã da moda é um flat white numa cafeteria de estilo australiano.
+E o jantar de sexta-feira, quando dá, é uma pizza napoletana com mozzarella di bufala, perfetto.
+Algumas palavras em árabe que muita gente conhece são habibi, yalla, inshallah e shukran.
+E em italiano, ficaram famosas andiamo, mamma mia, piano piano e che bello.
+
+# Frases curtas de impacto
+Isso muda tudo, de verdade, para sempre.
+Ninguém esperava por essa reviravolta no final.
+A montanha não perdoa quem chega despreparado.
+Calor de quarenta graus não é piada, é realidade.
+O futuro dos jogos começa exatamente agora.
+Essa é a pergunta de um milhão de reais.
+Não existe atalho, existe trabalho bem feito.
+A espera finalmente acabou, e valeu cada segundo.
+Eu errei feio, e vou mostrar exatamente onde.
+Isso aqui é ouro puro para quem programa.
+O preço assusta, mas o resultado impressiona.
+Essa cidade de videogame nunca pareceu tão real quanto agora.
+Ninguém fala sobre isso, mas deveria falar.
+Uma decisão simples, um resultado gigante.
+A inteligência artificial não substitui a curiosidade humana.
+Foi o pôr do sol mais bonito do ano.
+Esse detalhe passou despercebido por milhões de pessoas.
+Prepare-se, porque a próxima parte é pesada.
+Eu não acreditei até ver com os meus próprios olhos.
+O silêncio da madrugada fala mais alto que tudo.
+Menos promessa, mais jogo funcionando no lançamento.
+Cada bug corrigido é uma pequena vitória pessoal.
+Viajar ensina coisas que nenhuma escola ensina.
+Tecnologia boa é aquela que some e simplesmente funciona.
+O carro mais caro nem sempre é o carro melhor.
+Às vezes, a resposta certa é simplesmente esperar.
+Isso não é o fim, é só o começo.
+Eu testei, eu aprovei, e eu recomendo sem medo.
+A coragem de mudar vale mais que qualquer plano perfeito.
+Vamos juntos descobrir o que vem pela frente.
+
+# Despedida e chamadas para ação
+Bom, pessoal, por hoje é isso, muito obrigado por terem ficado até o final comigo.
+Se esse vídeo te ajudou de alguma forma, deixa aquele like, que isso ajuda demais o canal.
+E se você ainda não é inscrito, se inscreve e ativa o sininho para não perder o próximo vídeo.
+Comenta aí embaixo qual foi a parte que você mais gostou, que eu leio todos os comentários.
+Ficou com alguma dúvida? Deixa a sua pergunta nos comentários que eu respondo num próximo vídeo.
+Compartilha esse vídeo com aquele amigo que vive dizendo que vai começar um projeto novo.
+No próximo vídeo, eu vou mostrar como foi o primeiro ano inteiro desse projeto, com acertos e erros.
+Até lá, se cuida, bebe bastante água e não esquece do protetor solar.
+Um abraço, e até a próxima.
+Valeu demais, gente, vocês são incríveis, e a gente se vê no próximo vídeo.
+Fiquei muito feliz de dividir essa história com vocês, de coração mesmo.
+Eu sei que o vídeo ficou um pouquinho longo, mas tinha muita coisa importante para contar.
+Espero que tenha valido a pena cada minuto que você passou aqui comigo.
+Se você discordou de alguma opinião, tudo bem, o importante é a conversa continuar com respeito.
+Às vezes eu exagero na empolgação, mas é que eu gosto mesmo desse assunto.
+Eu vou continuar acompanhando todas as novidades dos lançamentos e trago tudo para vocês assim que sair.
+Enquanto isso, eu sigo testando gadgets, ferramentas de inteligência artificial e descobrindo lugares novos.
+Muito obrigado a quem está aqui desde o começo, desde os primeiros vídeos tremidos e mal iluminados.
+Vocês fizeram esse canal crescer, e eu não tenho palavras para agradecer de verdade.
+Lembra de uma coisa: ninguém nasce sabendo, e todo mundo começa do zero em algum momento.
+Se você está pensando em mudar de cidade, de carreira ou de vida, vai com calma, mas vai.
+Piano piano, como diz o ditado italiano, se chega longe.
+Agora eu vou ali tomar um café, porque esse vídeo me deixou exausto.
+E depois, claro, uma partidinha rápida antes de dormir, que ninguém é de ferro.
+Obrigado pela companhia, de verdade, foi um prazer enorme falar com vocês hoje.
+Tchau, tchau, beijo para a família, e um abraço especial para quem está assistindo de longe.
+Ciao, ragazzi, a gente se vê no próximo episódio, aqui no canal.
+Yalla, bora, que o próximo vídeo já está sendo preparado com muito carinho.
+Até a próxima, e que o seu jogo nunca trave na hora mais importante.
+Fui, gente, até daqui a pouquinho!
+
+# Datas, horários e valores no meio da frase (leia natural, sem pausa antes dos números)
+No dia doze de novembro de dois mil e vinte e seis, uma grande empresa de tecnologia soltou uma atualização sem avisar ninguém.
+A República foi proclamada no Brasil em quinze de novembro de mil oitocentos e oitenta e nove.
+O trailer saiu numa terça-feira, primeiro de maio, às dezoito e trinta, horário de Brasília.
+A live começa às nove e quinze, mas eu chego sempre uns dez minutinhos antes.
+O evento vai das dez horas da manhã até as vinte e duas horas, sem intervalo.
+Em mil novecentos e noventa e oito saiu um dos videogames mais vendidos da década.
+O console custava trezentos e quarenta e nove reais e noventa centavos na promoção de Black Friday.
+Lá fora, o mesmo jogo sai por sessenta e nove dólares, o que dá quase quatrocentos reais.
+Num café do centro, um expresso simples custa uns seis reais, e ninguém reclama.
+O preço caiu vinte por cento em uma semana, e a bateria ficou quatro vírgula cinco por cento melhor.
+O vídeo passou de um milhão e duzentos mil views em menos de vinte e quatro horas.
+Foram mil duzentos e cinquenta comentários, e eu li cada um deles, juro.
+A versão dezoito ponto dois do iOS corrigiu o bug da bateria, mas criou outro no Wi-Fi.
+O episódio três da série sai sexta, e o episódio quatro já está no forno.
+
+# Termos de tecnologia em inglês no meio da frase em português
+Ontem eu fiz o deploy da nova versão e, claro, deu ruim em produção.
+Esse update veio com um patch enorme, quase cinquenta gigas só de correção.
+O feedback da comunidade foi tão bom que o estúdio mudou o roadmap inteiro.
+O gameplay é incrível, mas o frame rate cai bastante quando tem muita gente na tela.
+Com ray tracing ligado, a placa sofre, mas o reflexo nas poças fica absurdo.
+A RTX cinquenta noventa tem trinta e dois gigas de memória e roda tudo em quatro K.
+No PlayStation cinco Pro, o jogo roda a sessenta FPS com upscaling ligado.
+Eu testei num monitor de cento e vinte hertz e a diferença no shooter é gritante.
+O framework novo deixou o build duas vezes mais rápido, e o time inteiro comemorou.
+O game designer explicou o loop do jogo num thread gigante no Twitter.
+Fiz um benchmark rápido e o notebook aguentou bem, mas o cooler parecia uma turbina.
+Esse open world tem tanto conteúdo que o early access já vale o preço.
+O streamer bateu o recorde de viewers e o chat simplesmente explodiu.
+Se o servidor cair no lançamento, o hype vira meme em dois minutos.
+Baixei o DLC, abri o menu de settings e passei meia hora só ajustando o gráfico.
+O prompt certo faz toda a diferença: o modelo entendeu o contexto e me devolveu o código pronto.
+Eu uso o ChatGPT para brainstorm e o Claude para revisar o código antes do commit.
+A Nvidia anunciou o DLSS quatro com frame generation, e a AMD respondeu com o FSR quatro.
+O trailer do GTA seis tem tanto easter egg que eu já fiz um print de cada frame.
+Isso não é bug, é feature, como diria qualquer dev depois da meia-noite.

@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* Orto CVM tokens (light theme). Use as bg-surface, text-muted, border-line, bg-go… */
+@theme {
+  --color-bg: #f5f5f2;
+  --color-surface: #ffffff;
+  --color-ink: #111214;
+  --color-ink-hover: #2a2c30;
+  --color-body: #3b3f45;
+  --color-muted: #5b6068;
+  --color-line: #e6e7ea;
+  --color-line-soft: #eff0f2;
+  --color-field: #c9ccd1;
+  --color-chip: #f0f1f3;
+  --color-track: #edeeeb;
+  --color-go: #00843d;
+  --color-go-hover: #006b31;
+  --color-go-soft: #e3f2ea;
+  --color-go-tint: #f2faf5;
+  --color-go-text: #00602c;
+  --color-alert: #d6001c;
+  --color-alert-dot: #ff3b4e;
+  --color-alert-soft: #fde7ea;
+  --color-alert-text: #a10016;
+  --color-claude-soft: #eee8fb;
+  --color-claude-text: #4b2a99;
+  --color-warn-text: #8a4b00;
+
+  --font-display: var(--font-saira), system-ui, sans-serif;
+  --font-sans: var(--font-figtree), system-ui, sans-serif;
+}
+
+/* in the base layer so component/utility classes (e.g. .btn-go text-white) win over plain link color */
+@layer base {
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+  }
+  a {
+    color: var(--color-go);
+  }
+  a:hover {
+    color: var(--color-go-hover);
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-go);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[10px] border border-[#d9dbdf] bg-surface px-[18px] text-[15px] font-semibold text-ink no-underline hover:bg-[#f0f1f3] hover:text-ink disabled:cursor-default disabled:opacity-45;
+  }
+  .btn-sm {
+    @apply min-h-10 px-3 text-sm;
+  }
+  .btn-go {
+    @apply border-go bg-go text-white hover:bg-go-hover hover:text-white;
+  }
+  .btn-ink {
+    @apply border-ink bg-ink text-white hover:bg-ink-hover hover:text-white;
+  }
+  .btn-danger {
+    @apply text-alert-text;
+  }
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+  .input {
+    @apply min-h-11 rounded-xl border border-field bg-surface px-3.5 text-base text-ink;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold;
+  }
+  .tag-claude {
+    @apply rounded-full bg-claude-soft px-1.5 py-px text-[11px] font-semibold text-claude-text;
+  }
+  .h1 {
+    @apply font-display text-[36px] leading-[1.1] font-bold;
+  }
+  .h2 {
+    @apply font-display text-xl leading-[1.2] font-semibold;
+  }
+  .pick {
+    @apply cursor-pointer text-left;
+  }
+}

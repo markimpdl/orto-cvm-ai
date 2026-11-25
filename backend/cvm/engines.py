@@ -13,6 +13,7 @@
 The worker is another process: it sees a change within CACHE_S.
 """
 
+import sys
 import time
 
 from cvm.config import settings
@@ -128,6 +129,70 @@ def options() -> dict:
 
 class NotReady(ValueError):
     """A model that is not fully downloaded on this machine was picked."""
+
+
+# ---------------- engine per feature on this machine (hardware tiers, cvm/setup/requirements.py) ----------------
+# Setting "engines" → "features": {feature: engine} written by the wizard's engine test (the tier that passed) or by
+# the person's pick among the tested ones. Without a saved choice the pipeline uses the best tier that fits this
+# machine's memory and has not failed its test (Setting "engine_tests").
+TIER_FEATURES = ("ai_images", "animation", "avatar", "music", "kids")
+TESTS_KEY = "engine_tests"
+
+
+def feature_choices() -> dict:
+    return {k: v for k, v in (_saved().get("features") or {}).items() if k in TIER_FEATURES and v}
+
+
+def _failed(feature: str) -> set[str]:
+    from sqlmodel import Session
+
+    from cvm import db
+    from cvm.models import Setting
+
+    try:
+        with Session(db.engine) as s:
+            row = s.get(Setting, TESTS_KEY)
+            res = ((row.value or {}).get(feature) or {}).get("results") or [] if row else []
+    except Exception:  # noqa: BLE001
+        return set()
+    return {r["engine"] for r in res if r.get("ok") is False}
+
+
+def feature_engine(feature: str) -> str | None:
+    """The engine this machine runs a feature with (a tier's engine id, e.g. "flux-nf4", "ltxv-2b", "latentsync"),
+    None when no tier can run here."""
+    from cvm.setup import requirements as req
+
+    try:
+        hw = req.detected()
+    except Exception:  # noqa: BLE001
+        hw = None
+    platform = hw.platform if hw and hw.platform != "other" else "mac" if sys.platform == "darwin" else "windows"
+    t = req.pick(feature, platform, hw, feature_choices().get(feature), failed=_failed(feature))
+    return t.engine if t else None
+
+
+def set_feature_engine(feature: str, engine: str | None) -> None:
+    """Save (or clear, with None) this machine's engine for a feature."""
+    from sqlmodel import Session
+
+    from cvm import db
+    from cvm.models import Setting
+
+    if feature not in TIER_FEATURES:
+        raise ValueError(f"feature: {feature!r}")
+    with Session(db.engine) as s:
+        row = s.get(Setting, KEY) or Setting(key=KEY)
+        value = dict(row.value or {})
+        feats = dict(value.get("features") or {})
+        if engine:
+            feats[feature] = engine
+        else:
+            feats.pop(feature, None)
+        row.value = {**value, "features": feats}
+        s.add(row)
+        s.commit()
+    invalidate()
 
 
 def put(data: dict) -> dict:

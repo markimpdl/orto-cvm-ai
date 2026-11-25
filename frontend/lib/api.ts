@@ -306,7 +306,7 @@ export const startResearch = (channelId: number, topic: string, language: string
 
 // ---------- install wizard (/instalar, backend cvm/api/setup.py) ----------
 
-export type SetupStep = "system" | "language" | "ai" | "features" | "models" | "channel" | "done";
+export type SetupStep = "system" | "language" | "ai" | "features" | "models" | "engines" | "channel" | "done";
 /** Setting "setup". `legacy` = a machine that already had channels before the wizard existed (never redirected). */
 export type SetupState = { done: boolean; legacy?: boolean; step?: SetupStep; choices?: Record<string, unknown> };
 export type Hardware = { platform: "mac" | "windows" | "other"; chip: string; ram_gb: number; vram_gb: number; disk_free_gb: number };
@@ -317,6 +317,14 @@ export type SetupInfo = { state: SetupState; hardware: Hardware; blockers: Block
 export type InstallItem = { kind: "tool" | "model"; id: string; size_gb: number; state: "ready" | "missing" | "running" | "failed"; error: string | null };
 export type InstallPlan = { items: InstallItem[]; missing_gb: number };
 export type InstallStatus = { running: boolean; features: string[]; items: InstallItem[]; at: string | null };
+/** Hardware tiers (GET /setup/engines): per feature, the engines of this machine best first and the last test. */
+export type EngineTier = { engine: string; label: string; fits: boolean; available: boolean; reason: string | null };
+export type EngineResult = { engine: string; label: string; ok: boolean; seconds: number; error: string | null; at: string };
+export type EngineFeature = {
+  label: string; selected: boolean; engine: string | null; all_tested: boolean; tiers: EngineTier[];
+  test: { chosen: string | null; running: boolean; results: EngineResult[] } | null;
+};
+export type EnginesInfo = { platform: string; running: boolean; at: string | null; features: Record<string, EngineFeature> };
 export type AiCheck = { installed: boolean; logged_in: boolean; reason?: string };
 export type AiStatus = { claude: AiCheck; codex: AiCheck };
 export type SetupFeatures = {

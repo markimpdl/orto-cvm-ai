@@ -47,8 +47,10 @@ cd ../frontend && npm run dev        # UI on :3010
 ```
 `INSTALAR.command` (Mac, `scripts/install/mac.sh`) and `INSTALAR.bat` (Windows 11 + NVIDIA ≥ 8 GB,
 `scripts/install/windows.ps1`: winget for uv/Node/FFmpeg/Poppler/Git, ffmpeg path into `.env`) install everything and
-open the wizard; both take `restart` (used by Atualizar; Windows also `stop`). On Windows the talking presenter,
-animation and kids series are not available yet (24 GB card, part 1B). `scripts/cvm-start.sh` / `cvm-stop.sh` (Mac)
+open the wizard; both take `restart` (used by Atualizar; Windows also `stop`). Hardware tiers
+(`cvm/setup/requirements.py`): each feature lists its engines best first and the machine gets the best that fits
+(VRAM on Windows, RAM on the Mac); the wizard's engine test (`cvm/setup/engine_test.py`, worker) keeps the first that
+passes in Setting `engines.features`, which the pipeline reads (`engines.feature_engine`). `scripts/cvm-start.sh` / `cvm-stop.sh` (Mac)
 and `INICIAR.bat` / `DESLIGAR.bat` (Windows) start and stop API, worker and UI; `scripts/install-launchd.sh` keeps them
 running at login on the Mac.
 

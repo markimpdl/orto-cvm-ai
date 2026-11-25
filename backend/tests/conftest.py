@@ -61,6 +61,15 @@ def _no_live_engines_or_keychain(monkeypatch):
 
     store: dict[str, str] = {}
     monkeypatch.setattr(engines, "_stored", lambda: {})
+    monkeypatch.setattr(engines, "_failed", lambda feature: set())
+    # hardware tiers: a fixed machine (the owner's Mac / an 8 GB NVIDIA PC), never nvidia-smi / sysctl of the runner
+    import sys
+
+    from cvm.setup import requirements
+
+    hw = requirements.Hardware("mac", "Apple M5 Pro", 48, 0, 500) if sys.platform == "darwin" else \
+        requirements.Hardware("windows", "NVIDIA GeForce RTX 5060", 32, 8, 500)
+    monkeypatch.setattr(requirements, "_DETECTED", [hw])
     engines.invalidate()
     keystore._cache.clear()
     monkeypatch.setattr(keystore, "_store_get", lambda name: store.get(name))

@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import Ai from "./steps/Ai";
 import Channel from "./steps/Channel";
 import Done from "./steps/Done";
+import Engines from "./steps/Engines";
 import Features from "./steps/Features";
 import Language from "./steps/Language";
 import Models from "./steps/Models";
@@ -117,7 +118,7 @@ export default function InstallPage() {
     back: () => go(STEPS[Math.max(idx - 1, 0)]),
     go,
   };
-  const Step = { system: System, language: Language, ai: Ai, features: Features, models: Models, channel: Channel, done: Done }[step];
+  const Step = { system: System, language: Language, ai: Ai, features: Features, models: Models, engines: Engines, channel: Channel, done: Done }[step];
   return (
     <Shell>
       <Stepper step={step} furthest={furthest} onPick={go} />
@@ -149,7 +150,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Stepper({ step, furthest, onPick }: { step: SetupStep; furthest: number; onPick: (s: SetupStep) => void }) {
   const { t } = useT();
   const labels: Record<SetupStep, string> = {
-    system: t("Sistema"), language: t("Idioma"), ai: t("IAs"), features: t("Recursos"), models: t("Modelos"), channel: t("Canal"), done: t("Pronto"),
+    system: t("Sistema"), language: t("Idioma"), ai: t("IAs"), features: t("Recursos"), models: t("Modelos"), engines: t("Teste"), channel: t("Canal"), done: t("Pronto"),
   };
   const cur = STEPS.indexOf(step);
   return (

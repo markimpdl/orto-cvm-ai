@@ -1,7 +1,9 @@
 """Install wizard features step: what the user wants to see and collect. Setting "features":
-{"ai_ideas", "regions": [ISO2...] | ["GLOBAL"], "lives": ["youtube","twitch","kick"], "vidiq", "follow", "avatars",
+{"ai_ideas", "regions": ["GLOBAL" and/or ISO2...] (several at once, each collected on its own), "lives": ["youtube","twitch","kick"], "vidiq", "follow", "avatars",
 "elevenlabs"}. No row (the owner's machine) = everything on and `settings.regions` untouched. Turning a feature off
 only changes this Setting: nothing on disk is deleted. API keys go to the keystore, never to a Setting."""
+
+import re
 
 from sqlmodel import Session
 
@@ -34,10 +36,18 @@ def _clean(data: dict) -> dict:
         if k in data:
             out[k] = bool(data[k])
     if "regions" in data:
-        regs = [str(r).strip().upper() for r in data["regions"] or [] if str(r).strip()]
+        regs: list[str] = []
+        for r in data["regions"] or []:
+            code = str(r).strip().upper()
+            if not code:
+                continue
+            if code != "GLOBAL" and not re.fullmatch(r"[A-Z]{2}", code):
+                raise ValueError(f"região inválida: {code!r}")
+            if code not in regs:
+                regs.append(code)
         if not regs:
             raise ValueError("escolha ao menos uma região")
-        out["regions"] = ["GLOBAL"] if "GLOBAL" in regs else regs
+        out["regions"] = regs  # GLOBAL sits beside the countries (owner, 2026-11-25): each region is collected apart
     if "lives" in data:
         out["lives"] = [p for p in data["lives"] or [] if p in LIVES]
     return out

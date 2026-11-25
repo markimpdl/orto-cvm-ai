@@ -26,7 +26,7 @@ from cvm import models_registry
 from cvm.config import REPO_ROOT, settings
 from cvm.setup import tools
 from cvm.setup.detach import detached
-from cvm.setup.requirements import FEATURES, LTX_PACK_GB, _expand
+from cvm.setup.requirements import FEATURES, LTX_PACK_GB, chosen
 
 KEY = "setup_install"
 PLATFORM = "mac" if sys.platform == "darwin" else "windows"
@@ -154,7 +154,7 @@ def _ready(kind: str, iid: str) -> bool:
 
 
 def _model_item(mid: str) -> Item:
-    size = _extra_spec(mid)["size"] if mid in EXTRA else _size_gb(models_registry.MODELS[mid]["size"])
+    size = _extra_spec(mid)["size"] if mid in EXTRA else _size_gb((models_registry.spec(mid) or models_registry.MODELS[mid])["size"])
     return Item("model", mid, float(size), "ready" if _ready("model", mid) else "missing")
 
 
@@ -163,20 +163,33 @@ def _tool_item(name: str) -> Item:
     return Item("tool", name, float(t.size_gb), "ready" if _ready("tool", name) else "missing")
 
 
-def plan(features: list[str], platform: str) -> list[Item]:
-    """Items for the features (plus what they require) on that platform, base first. Model ids and tool names are
-    taken too (scripts/download-models.sh). Unknown names → ValueError."""
+def _machine(platform: str, hw, saved):
+    """This machine's hardware and engine choices when planning for it (and nothing was passed in)."""
+    if hw is None and saved is None and platform == PLATFORM:
+        from cvm import engines
+        from cvm.setup.requirements import detected
+
+        try:
+            return detected(), engines.feature_choices()
+        except Exception:  # noqa: BLE001 — no DB yet: the best tiers that fit
+            return detected(), {}
+    return hw, saved
+
+
+def plan(features: list[str], platform: str, hw=None, saved: dict | None = None) -> list[Item]:
+    """Items for the features (plus what they require) on that platform, base first: for each feature, the items of
+    the tier picked for this hardware (requirements.pick; `saved` = engine choices per feature). Model ids and tool
+    names are taken too (scripts/download-models.sh). Unknown names → ValueError."""
     feats = [n for n in features if n in FEATURES]
     loose = [n for n in features if n not in FEATURES]
     for n in loose:
         if n not in models_registry.MODELS and n not in EXTRA and n not in tools.TOOLS:
             raise ValueError(f"Recurso ou modelo desconhecido: {n!r}")
-    expanded = set(_expand(feats))
+    hw, saved = _machine(platform, hw, saved)
+    picked = chosen(feats, platform, hw, saved)
     wanted: list[tuple[str, str]] = []
-    for k in [k for k in FEATURES if k in expanded]:
-        need = FEATURES[k].mac if platform == "mac" else FEATURES[k].windows
-        if need is None or need.pending_1b:
-            continue
+    for k in [k for k in FEATURES if k in picked]:
+        need = picked[k].need
         wanted += [("tool", t) for t in need.tools]
         wanted += [("model", ltx_id() if m in ("ltx-2.5", "ltx-2.3") else m) for m in need.models]
     wanted += [("tool" if n in tools.TOOLS else "model", n) for n in loose]
@@ -238,6 +251,10 @@ def install_tool(name: str) -> None:
     for f in t.vendor:
         shutil.copy2(tools.VENDOR / f, folder / f)
     for cmd in t.setup:
+        # a tool's own venv python (".venv/Scripts/python.exe"): Windows resolves a relative program against the
+        # parent's folder, not cwd, so it is made absolute here
+        if str(cmd[0]).startswith(".venv"):
+            cmd = [str(folder / cmd[0]), *cmd[1:]]
         _sh(cmd, cwd=folder)
 
 

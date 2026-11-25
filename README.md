@@ -43,7 +43,7 @@ You need Windows 11, an NVIDIA card with at least 8 GB of video memory (with its
 3. If `winget` is missing, install App Installer from the Microsoft Store and run `INSTALAR.bat` again.
 4. The installer checks your card and memory first. Then it adds whatever is missing (`uv`, Node, FFmpeg, Poppler, Git), starts the API, the queue and the interface in their own windows, and opens the setup wizard at http://localhost:3010/instalar.
 
-On Windows you get the basics: voice, captions, library footage, and AI images when the card has enough memory. The talking presenter, animated scenes and kids series need a 24 GB card and are not available on Windows yet.
+On Windows every feature has a lighter engine for smaller cards: the installer picks the best one that fits your card, and the wizard's "Teste" step tries each one on your PC and keeps the best that works. On an 8 GB card the talking presenter uses LTX-2 in 8 bits when it fits, or LatentSync / MuseTalk lip-sync; scenes are animated by LTX-Video 2B; images come from FLUX in 4 bits. The Windows engines are new: if one fails the test, the wizard falls back to the next.
 
 To stop the app, close the three CVM windows or run `INSTALAR.bat stop`.
 
@@ -81,4 +81,4 @@ Built on open models and tools, including VoxCPM2, Whisper, CLIP, LTX-Video, FLU
 
 ## Português
 
-O Orto CVM é uma fábrica de vídeos com IA que roda no seu computador: escreve o roteiro (com o Claude, pela sua assinatura do Claude Code), narra com voz clonada local, junta ou gera as imagens e entrega versões para YouTube, Shorts, Reels e TikTok. Você aprova o roteiro e o vídeo antes de publicar. Para instalar, dê dois cliques em `INSTALAR.command` (Mac) ou `INSTALAR.bat` (Windows 11 com placa NVIDIA de 8 GB ou mais e 32 GB de memória). No Windows, por enquanto, só entra o básico. O apresentador falando, as cenas animadas e as séries infantis precisam de uma placa de 24 GB e ainda não estão disponíveis lá. A interface está em português e inglês.
+O Orto CVM é uma fábrica de vídeos com IA que roda no seu computador: escreve o roteiro (com o Claude, pela sua assinatura do Claude Code), narra com voz clonada local, junta ou gera as imagens e entrega versões para YouTube, Shorts, Reels e TikTok. Você aprova o roteiro e o vídeo antes de publicar. Para instalar, dê dois cliques em `INSTALAR.command` (Mac) ou `INSTALAR.bat` (Windows 11 com placa NVIDIA de 8 GB ou mais e 32 GB de memória). No Windows, cada recurso tem um motor mais leve para placas menores: o instalador escolhe o melhor que cabe na sua placa e o passo "Teste" do assistente experimenta cada um no seu PC e fica com o melhor que funcionar. A interface está em português e inglês.

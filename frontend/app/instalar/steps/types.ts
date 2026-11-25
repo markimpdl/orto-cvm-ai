@@ -1,6 +1,6 @@
 import type { SetupInfo, SetupStep } from "@/lib/api";
 
-export const STEPS: SetupStep[] = ["system", "language", "ai", "features", "models", "channel", "done"];
+export const STEPS: SetupStep[] = ["system", "language", "ai", "features", "models", "engines", "channel", "done"];
 
 /** What the wizard page hands each step. */
 export type Wizard = {

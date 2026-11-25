@@ -24,17 +24,66 @@ def test_disk_total_blocks():
     assert any(x.feature == "disk" for x in b)
 
 
-def test_windows_avatar_pending_until_1b():
-    win = Hardware("windows", "RTX 5090", 64, 32, 900)
-    assert [x.feature for x in check(["base", "avatar"], win)] == ["avatar"]
+def _win(vram, ram=32):
+    return Hardware("windows", f"RTX {vram} GB", ram, vram, 900)
 
 
-def test_windows_video_features_say_they_need_24gb_and_are_not_there_yet():
-    win = Hardware("windows", "RTX 5060", 32, 8, 900)
-    got = {b.feature: b.reason for b in check(["avatar", "animation", "kids"], win)}
-    assert set(got) == {"avatar", "animation", "kids"}
-    for reason in got.values():
-        assert "24 GB" in reason and "ainda não está disponível no Windows" in reason
+def _picked(hw, failed=()):
+    from cvm.setup.requirements import pick
+    return {k: (t.engine if (t := pick(k, hw.platform, hw, failed=failed)) else None)
+            for k in ("ai_images", "animation", "avatar", "music", "kids")}
+
+
+def test_no_windows_feature_blocked_on_an_8gb_card():
+    # owner, 2026-11-25: "Tá mostrando que minha máquina 5060 não roda nada" — every feature has a tier that fits
+    assert check(["base", "ai_images", "avatar", "animation", "kids", "music"], _win(8)) == []
+
+
+def test_tier_choice_per_card():
+    assert _picked(_win(8)) == {"ai_images": "flux-nf4", "animation": "ltxv-2b", "avatar": "ltx2-q",
+                                "music": "acestep-offload", "kids": "series"}
+    assert _picked(_win(12)) == {"ai_images": "flux-8bit", "animation": "wan-5b", "avatar": "ltx2-q",
+                                 "music": "acestep-offload", "kids": "series"}
+    assert _picked(_win(16)) == {"ai_images": "flux-8bit", "animation": "wan-5b", "avatar": "ltx2-q",
+                                 "music": "acestep", "kids": "series"}
+    # 24 GB: LTX-2 on CUDA is part 1B (not available yet), so the next tiers that fit are used
+    assert _picked(_win(24)) == {"ai_images": "flux-bf16", "animation": "wan-5b", "avatar": "ltx2-q",
+                                 "music": "acestep", "kids": "series"}
+
+
+def test_mac_keeps_its_single_tier():
+    assert _picked(MAC48) == {"ai_images": "z-image", "animation": "ltx-mlx", "avatar": "ltx-mlx",
+                              "music": "acestep", "kids": "klein-ltx"}
+    got = _picked(MAC32)
+    assert got["ai_images"] == "z-image" and got["music"] == "acestep"
+    assert got["avatar"] is got["animation"] is got["kids"] is None  # 48 GB only, as before
+
+
+def test_failed_tier_falls_to_the_next():
+    assert _picked(_win(8), failed={"ltx2-q"})["avatar"] == "latentsync"
+    assert _picked(_win(8), failed={"ltx2-q", "latentsync"})["avatar"] == "musetalk"
+    assert _picked(_win(8), failed={"ltx2-q", "latentsync", "musetalk"})["avatar"] is None
+    assert _picked(_win(24), failed={"flux-bf16"})["ai_images"] == "flux-8bit"
+
+
+def test_saved_choice_wins_and_unknown_is_ignored():
+    from cvm.setup.requirements import pick
+    assert pick("avatar", "windows", _win(8), saved="musetalk").engine == "musetalk"
+    assert pick("avatar", "windows", _win(8), saved="ltx2-cuda").engine == "ltx2-q"  # not available yet
+    assert pick("avatar", "windows", _win(8), saved="nope").engine == "ltx2-q"
+
+
+def test_blocked_only_when_no_tier_fits():
+    small = _win(4)
+    got = {b.feature: b.reason for b in check(["avatar", "music"], small)}
+    assert "6 GB" in got["avatar"] and "4 GB" in got["avatar"]  # the lightest tier (MuseTalk) is named
+    assert "8 GB" in got["music"]
+
+
+def test_kids_on_windows_brings_images_and_animation():
+    from cvm.setup.requirements import _expand
+    assert set(_expand(["kids"], "windows", _win(8))) == {"kids", "base", "ai_images", "animation"}
+    assert set(_expand(["kids"], "mac", MAC48)) == {"kids", "base"}  # the Mac row is unchanged
 
 
 def test_windows_gate_needs_vram():

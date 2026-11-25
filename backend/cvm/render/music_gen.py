@@ -27,10 +27,43 @@ CAPTIONS = {  # instrumental beds that sit under a voice: no lead melody fightin
 }
 
 
+def _python() -> Path:
+    from cvm.setup.tools import venv_python
+
+    return venv_python(ACE)
+
+
+def engine() -> str | None:
+    """This machine's music tier (cvm/setup/requirements.py): "acestep", or "acestep-offload" on cards under 16 GB
+    (the models wait in RAM and visit the GPU in turns); None when no tier fits or every one failed its test."""
+    from cvm import engines
+
+    return engines.feature_engine("music")
+
+
 def ready() -> bool:
     ck = ACE / "checkpoints"
-    return (ACE / ".venv" / "bin" / "python").exists() and (ACE / "cvm_music.py").exists() and \
-        (ck / "acestep-v15-turbo").exists() and any(ck.glob("acestep-5Hz-lm-*"))
+    return _python().exists() and (ACE / "cvm_music.py").exists() and \
+        (ck / "acestep-v15-turbo").exists() and any(ck.glob("acestep-5Hz-lm-*")) and engine() is not None
+
+
+def run_jobs(jobs: list[dict], timeout: int = 60 * 60, engine_id: str | None = None):
+    """One model load for a batch of {caption, seconds, seed, out}, under the heavy-model lock; returns the finished
+    process (one JSON line per job on stdout). engine_id forces a tier (the wizard's engine test)."""
+    import os
+
+    from cvm import gpu
+
+    eng = engine_id or engine()
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump(jobs, f)
+    try:
+        with gpu.section():
+            return subprocess.run([str(_python()), "cvm_music.py", f.name], cwd=ACE, capture_output=True, text=True,
+                                  timeout=timeout,
+                                  env={**os.environ, "CVM_ACE_OFFLOAD": "1" if eng == "acestep-offload" else "0"})
+    finally:
+        Path(f.name).unlink(missing_ok=True)
 
 
 def library(style: str) -> Path:
@@ -39,7 +72,6 @@ def library(style: str) -> Path:
 
 def grow(style: str, seed: int) -> list[Path]:
     """Fill the style's library up to LIBRARY_TARGET with new tracks (one model load); returns the new files."""
-    from cvm import gpu
 
     folder = library(style)
     folder.mkdir(parents=True, exist_ok=True)
@@ -49,12 +81,7 @@ def grow(style: str, seed: int) -> list[Path]:
     key = folder.name
     jobs = [{"caption": CAPTIONS[key] + ", instrumental, no vocals", "seconds": TRACK_S, "seed": seed + i,
              "out": str(folder / f"{key}_{seed + i}.wav")} for i in range(LIBRARY_TARGET - have)]
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
-        json.dump(jobs, f)
-    with gpu.section():
-        proc = subprocess.run([str(ACE / ".venv" / "bin" / "python"), "cvm_music.py", f.name], cwd=ACE,
-                              capture_output=True, text=True, timeout=60 * 60)
-    Path(f.name).unlink(missing_ok=True)
+    proc = run_jobs(jobs)
     made = []
     for line in proc.stdout.splitlines():
         if line.startswith("{") and (r := json.loads(line)).get("ok"):

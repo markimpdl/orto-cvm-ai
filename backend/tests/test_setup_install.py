@@ -74,10 +74,23 @@ def test_plan_items_carry_size_and_state(env):
     assert items["whisper"].kind == "model" and items["whisper"].size_gb == pytest.approx(1.6)
 
 
-def test_plan_windows_does_not_crash(env):
-    got = install.plan(["base", "ai_images", "avatar", "animation", "kids", "music"], "windows")
-    assert {"voxcpm2", "whisper", "clip", "flux-schnell"} <= ids(got)
-    assert not any(i.kind == "tool" for i in got)  # Windows tools come with part 1B
+def _win(vram):
+    from cvm.setup.requirements import Hardware
+    return Hardware("windows", "RTX", 32, vram, 900)
+
+
+def test_plan_windows_follows_the_card(env):
+    feats = ["base", "ai_images", "avatar", "animation", "kids", "music"]
+    small = install.plan(feats, "windows", hw=_win(8), saved={})
+    assert ids(small) == {"voxcpm2", "whisper", "clip", "flux-schnell", "ltxv-2b", "LTX-2", "ltx2.3-dev", "gemma3-qat",
+                          "ACE-Step-1.5-cuda"}
+    mid = install.plan(feats, "windows", hw=_win(12), saved={})
+    assert {"flux-schnell-bf16", "wan-ti2v-5b"} <= ids(mid) and not {"flux-schnell", "ltxv-2b"} & ids(mid)
+    # the engine test chose LatentSync for the avatar: its tool replaces LTX-2's items
+    picked = install.plan(feats, "windows", hw=_win(8), saved={"avatar": "latentsync"})
+    assert "LatentSync" in ids(picked) and not {"LTX-2", "ltx2.3-dev", "gemma3-qat"} & ids(picked)
+    # no Mac-only tool on Windows
+    assert not ids(small) & {"LTX2MLX", "VLMJudge", "gemma", "seedvr2", "ACE-Step-1.5"}
 
 
 def test_plan_rejects_unknown_names(env):
@@ -238,8 +251,11 @@ def test_windows_wizard_install_runs_detached_and_offers_no_mac_tools(env, monke
     # basic install are listed; Mac-only tools (LTX2MLX, VLMJudge, MLX Gemma) are never offered
     import sys
 
+    from cvm.setup import requirements
+
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setattr(install, "PLATFORM", "windows")
+    monkeypatch.setattr(requirements, "_DETECTED", [_win(8)])  # the owner's RTX 5060
     spawned = []
 
     class P:
@@ -252,7 +268,9 @@ def test_windows_wizard_install_runs_detached_and_offers_no_mac_tools(env, monke
     cmd, kw = spawned[0]
     assert "start_new_session" not in kw and kw["creationflags"] == 0x00000008 | 0x00000200
     got = {i["id"] for i in install.status()["items"]}
-    assert got == {"voxcpm2", "whisper", "clip", "flux-schnell"}
+    # every feature has an 8 GB tier now (nothing is left out of the PC)
+    assert got == {"voxcpm2", "whisper", "clip", "flux-schnell", "ltxv-2b", "LTX-2", "ltx2.3-dev", "gemma3-qat",
+                   "ACE-Step-1.5-cuda"}
     assert not got & {"LTX2MLX", "VLMJudge", "gemma", "seedvr2", "RobustVideoMatting", "ACE-Step-1.5"}
 
 

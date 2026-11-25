@@ -15,7 +15,6 @@ from pathlib import Path
 import httpx
 
 from cvm.config import key, settings
-from cvm.models_registry import cuda_loader
 
 log = logging.getLogger(__name__)
 _VENV_BIN = Path(__file__).resolve().parents[2] / ".venv" / ("Scripts" if os.name == "nt" else "bin")
@@ -314,16 +313,14 @@ def detail(image: Path) -> float:
     return sum(hist[41:]) / max(sum(hist), 1)
 
 
-@cuda_loader("image")
-def _flux_cuda():
-    import torch
-    from diffusers import FluxPipeline
+def flux_variant() -> str | None:
+    """CUDA machines: this machine's FLUX tier ("flux-nf4" | "flux-8bit" | "flux-bf16", cvm/visuals/flux_cuda.py),
+    when its weights are downloaded; None otherwise."""
+    from cvm import engines
+    from cvm.visuals import flux_cuda
 
-    from cvm.models_registry import repo
-
-    pipe = FluxPipeline.from_pretrained(repo("flux-schnell"), torch_dtype=torch.bfloat16, local_files_only=True)
-    pipe.enable_model_cpu_offload()  # T5 and the transformer take turns on the 8 GB card
-    return pipe
+    v = engines.feature_engine("ai_images")
+    return v if flux_cuda.ready(v) else None
 
 
 AI_STILL_SOURCES = ("flux", "z-image")  # Asset.source prefixes of locally generated stills
@@ -348,6 +345,8 @@ def image_engine(kids: bool = False, prefer: str | None = None) -> str | None:
         return "klein"
     if MLX and want == "z-image" and is_ready("z-image-turbo"):
         return "z-image"
+    if not MLX:  # CUDA: the FLUX variant of this machine's tier (images by AI only when one is ready)
+        return "flux" if flux_variant() else None
     return "flux" if is_ready("flux-schnell") else None
 
 
@@ -416,12 +415,13 @@ def flux_image(prompt: str, out: Path, portrait: bool = True, steps: int = 4, se
 
     w, h = (768, 1344) if portrait else (1344, 768)
     if not MLX:
-        import torch
+        from cvm.visuals import flux_cuda
 
+        variant = flux_variant()
+        if variant is None:
+            raise RuntimeError("nenhum FLUX pronto nesta máquina (assistente > Modelos)")
         with gpu.section():
-            gen = torch.Generator("cpu").manual_seed(seed % 2**32) if seed is not None else None
-            _flux_cuda()(prompt, width=w, height=h, num_inference_steps=steps, guidance_scale=0.0,
-                         max_sequence_length=256, generator=gen).images[0].save(out)
+            flux_cuda.draw(variant, prompt, out, w, h, steps=steps, seed=seed)
         return out
     mflux = _VENV_BIN / "mflux-generate"
 
@@ -553,7 +553,13 @@ def animate_clip(image: Path, prompt: str, out: Path, seconds: float, portrait: 
     """Image-to-video with the engine picked for `purpose` (cvm/engines.py: kids | realistic | cartoon; LTX when
     installed, else Wan). Returns (clip, engine). loop: end on the starting still (LTX only; avatars' idle loops)."""
     from cvm import engines
+    from cvm.models_registry import MLX
 
+    if not MLX:  # CUDA: this machine's animation tier (cvm/visuals/video_cuda.py)
+        from cvm.visuals import video_cuda
+
+        eng = engines.feature_engine("animation")
+        return video_cuda.clip(eng, image, prompt, out, seconds, portrait, seed=seed), video_cuda.LABELS.get(eng, str(eng))
     if engines.video_engine(purpose) == "ltx" and ltx_ready():
         return ltx_clip(image, prompt, out, seconds, portrait, loop=loop, seed=seed), f"ltx-{ltx_version()}"
     return wan_clip(image, prompt, out, seconds, portrait, steps, seed=seed), "wan2.2-ti2v-5b"

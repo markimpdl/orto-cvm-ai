@@ -5,15 +5,19 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppData } from "@/components/AppData";
 import { CheckBox, PageHeader, ScoreBadge } from "@/components/Bits";
-import { api, REGION_LABEL, STYLE_LABEL, type Analysis, type Idea, type Project, type Suggested, type Trend } from "@/lib/api";
+import { api, STYLE_LABEL, type Analysis, type Idea, type Project, type Suggested, type Trend } from "@/lib/api";
 import { FollowTab, GlobalResearchTab, HotLivesTab, HotVideosTab, useMore } from "@/components/EmAlta";
 import { produceHref } from "@/lib/emAlta";
 import QueueMini from "@/components/QueueMini";
 import { useFeatures } from "@/lib/features";
 import { useT } from "@/lib/i18n";
+import { regionName } from "@/lib/regions";
 import { groupOf, statusText } from "@/lib/pipeline";
 
-const REGIONS = [["", "Todas"], ["AE", "Emirados"], ["BR", "Brasil"], ["US", "Global"]] as const;
+/** Old machines without the wizard's Setting: the tabs they always had. */
+const DEFAULT_TABS = ["AE", "BR", "US"];
+/** Regions the lives/videos search knows (cvm/grow/discover.BROAD); any other region searches worldwide. */
+const DISCOVER = ["BR", "US", "AE"];
 type BatchItem = { trend_id: number; analysis_id?: number; idea_index?: number };
 
 function useAnalysis(region: string) {
@@ -92,7 +96,7 @@ function IdeaCard({ idea, analysisId, selected, toggle, project }: {
   );
 }
 
-function TrendRow({ trend, selected, toggle, project }: { trend: Trend; selected: boolean; toggle: () => void; project?: Project }) {
+function TrendRow({ trend, selected, toggle, project, regions }: { trend: Trend; selected: boolean; toggle: () => void; project?: Project; regions: string[] }) {
   const { t } = useT();
   const queued = !!trend.project_id;
   const why = trend.meta.news_title ?? (trend.meta.hours_trending ? t("Em alta há {h} h", { h: trend.meta.hours_trending }) : null);
@@ -109,7 +113,7 @@ function TrendRow({ trend, selected, toggle, project }: { trend: Trend; selected
         <span className="text-base leading-[1.3] font-semibold">{trend.title}</span>
         {why && <span className="text-sm leading-[1.45] text-muted">{why}</span>}
         <span className="text-[13px] text-body">
-          {t(REGION_LABEL[trend.region] ?? trend.region)} · {sources} · {trend.suggested && <Destination s={trend.suggested} />}
+          {t(regionName(trend.region, regions))} · {sources} · {trend.suggested && <Destination s={trend.suggested} />}
         </span>
       </div>
       <div className="flex flex-none items-center gap-2">
@@ -155,6 +159,10 @@ export default function TrendsPage() {
 
   const byId = useMemo(() => Object.fromEntries(projects.map((p) => [p.id, p])), [projects]);
   const ideas = (a?.items ?? []).filter((i) => !region || i.region === region);
+  // one tab per region the machine collects (several at once since 2026-11-25), plus "Todas"
+  const chosen = features.regions.length ? features.regions : DEFAULT_TABS;
+  const regionTabs: [string, string][] = [["", "Todas"], ...chosen.map((c): [string, string] => [c, regionName(c, chosen)])];
+  const discoverRegion = DISCOVER.includes(region) ? region : "";
   const todo = projects.filter((p) => groupOf(p.job) === "you").length;
 
   async function produce(items: BatchItem[]) {
@@ -223,7 +231,7 @@ export default function TrendsPage() {
                 </button>
               ))}
             </div>
-            {(tab === "research" || tab === "follow") ? null : REGIONS.map(([k, label]) => (
+            {(tab === "research" || tab === "follow") ? null : regionTabs.map(([k, label]) => (
               <button
                 key={k}
                 aria-pressed={region === k}
@@ -246,9 +254,9 @@ export default function TrendsPage() {
           {tab === "research" ? (
             <GlobalResearchTab />
           ) : tab === "lives" ? (
-            <HotLivesTab region={region} platforms={features.lives} />
+            <HotLivesTab region={discoverRegion} platforms={features.lives} />
           ) : tab === "videos" ? (
-            <HotVideosTab region={region} />
+            <HotVideosTab region={discoverRegion} />
           ) : tab === "follow" ? (
             <FollowTab />
           ) : tab === "ideas" ? (
@@ -296,6 +304,7 @@ export default function TrendsPage() {
                   selected={!!sel[`trend:${tr.id}`]}
                   toggle={() => toggle(`trend:${tr.id}`, { trend_id: tr.id }, tr.title)}
                   project={tr.project_id ? byId[tr.project_id] : undefined}
+                  regions={chosen}
                 />
               ))}
               {!trends.length && <p className="m-0 p-4 text-muted">{t("Nenhuma tendência coletada ainda. Clique em Atualizar agora.")}</p>}

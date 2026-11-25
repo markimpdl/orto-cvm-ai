@@ -9,7 +9,7 @@ from cvm.config import settings
 from cvm.models import Channel, Setting
 
 KEY = "setup"
-STEPS = ("system", "language", "ai", "features", "models", "channel", "done")
+STEPS = ("system", "language", "ai", "features", "models", "engines", "channel", "done")
 
 
 def _mirror(done: bool) -> None:

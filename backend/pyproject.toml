@@ -40,8 +40,8 @@ dependencies = [
     "transformers>=4.50; sys_platform != 'darwin'",
     "accelerate>=1.5; sys_platform != 'darwin'",
     "voxcpm>=2.0; sys_platform != 'darwin'",  # VoxCPM2 (local voices) on CUDA
-    "diffusers>=0.32; sys_platform != 'darwin'",
-    "bitsandbytes>=0.45; sys_platform != 'darwin'",
+    "diffusers>=0.35; sys_platform != 'darwin'",  # Wan 2.2 (WanImageToVideoPipeline) and LTX-Video i2v on CUDA
+    "bitsandbytes>=0.45.3; sys_platform != 'darwin'",  # 0.45.3: CUDA 12.8 build with sm_120 (RTX 50)
 ]
 
 [dependency-groups]
@@ -76,7 +76,7 @@ override-dependencies = [
     "torchvision>=0.22; sys_platform != 'darwin'",
     "numpy>=2.5.4",
     "transformers>=4.50",
-    "diffusers>=0.29",
+    "diffusers>=0.35",
     "safetensors>=0.5",
     "gradio; python_version < '0'",
 ]

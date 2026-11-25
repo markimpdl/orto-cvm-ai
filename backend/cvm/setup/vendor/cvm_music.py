@@ -16,6 +16,9 @@ sys.path.insert(0, str(ROOT))
 for k in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
     os.environ.pop(k, None)
 
+# CVM_ACE_OFFLOAD=1 (the "acestep-offload" tier, cards under 16 GB): the models wait in RAM and visit the GPU in turns
+OFFLOAD = os.environ.get("CVM_ACE_OFFLOAD") == "1"
+
 from acestep.handler import AceStepHandler  # noqa: E402
 from acestep.inference import GenerationConfig, GenerationParams, generate_music  # noqa: E402
 from acestep.llm_inference import LLMHandler  # noqa: E402
@@ -25,7 +28,7 @@ def main() -> None:
     jobs = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     dit = AceStepHandler()
     msg, ok = dit.initialize_service(project_root=str(ROOT), config_path="acestep-v15-turbo", device="auto",
-                                     offload_to_cpu=False)
+                                     offload_to_cpu=OFFLOAD)
     if not ok:
         raise SystemExit(f"DiT init failed: {msg}")
     lm = LLMHandler()
@@ -33,7 +36,7 @@ def main() -> None:
     lm_name = next((n for n in ("acestep-5Hz-lm-0.6B", "acestep-5Hz-lm-1.7B") if (ROOT / "checkpoints" / n).exists()),
                    "acestep-5Hz-lm-0.6B")
     msg, ok = lm.initialize(checkpoint_dir=str(ROOT / "checkpoints"), lm_model_path=lm_name,
-                            backend="mlx" if sys.platform == "darwin" else "pt", device="auto", offload_to_cpu=False)
+                            backend="mlx" if sys.platform == "darwin" else "pt", device="auto", offload_to_cpu=OFFLOAD)
     if not ok:
         raise SystemExit(f"LM init failed: {msg}")
     for job in jobs:

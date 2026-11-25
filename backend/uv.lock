@@ -11,7 +11,7 @@ resolution-markers = [
 
 [manifest]
 overrides = [
-    { name = "diffusers", specifier = ">=0.29" },
+    { name = "diffusers", specifier = ">=0.35" },
     { name = "gradio", marker = "python_full_version < '0'" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "safetensors", specifier = ">=0.5" },
@@ -598,8 +598,8 @@ voicetrain = [
 [package.metadata]
 requires-dist = [
     { name = "accelerate", marker = "sys_platform != 'darwin'", specifier = ">=1.5" },
-    { name = "bitsandbytes", marker = "sys_platform != 'darwin'", specifier = ">=0.45" },
-    { name = "diffusers", marker = "sys_platform != 'darwin'", specifier = ">=0.32" },
+    { name = "bitsandbytes", marker = "sys_platform != 'darwin'", specifier = ">=0.45.3" },
+    { name = "diffusers", marker = "sys_platform != 'darwin'", specifier = ">=0.35" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "feedparser", specifier = ">=6.0" },
     { name = "google-api-python-client", specifier = ">=2.201.0" },

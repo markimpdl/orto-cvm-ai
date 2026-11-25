@@ -4,19 +4,12 @@ import { useEffect, useState } from "react";
 import { useAppData } from "@/components/AppData";
 import { api, apiDetail, type SetupFeatures } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { COUNTRIES } from "@/lib/regions";
 import { chosenFeatures, type Wizard } from "./types";
+import { CheckBox } from "@/components/Bits";
 import { Field, Note, Section, StepFooter, StepHead, Toggle } from "./ui";
 
 type KeyName = "pexels" | "pixabay" | "youtube" | "twitch_id" | "twitch_secret" | "elevenlabs";
-type Region = "BR" | "GLOBAL" | "other";
-
-/** ISO-2 codes offered under "Outro país" (the collectors take any ISO-2; this is the short list). */
-const COUNTRIES: [string, string][] = [
-  ["AE", "Emirados Árabes"], ["AR", "Argentina"], ["BR", "Brasil"], ["AU", "Austrália"], ["CA", "Canadá"], ["CL", "Chile"], ["CO", "Colômbia"],
-  ["DE", "Alemanha"], ["EG", "Egito"], ["ES", "Espanha"], ["FR", "França"], ["GB", "Reino Unido"], ["IN", "Índia"],
-  ["IT", "Itália"], ["JP", "Japão"], ["MX", "México"], ["PT", "Portugal"], ["SA", "Arábia Saudita"], ["US", "Estados Unidos"],
-];
-
 /** Defaults for a new install (spec §3.4): paid accounts off until the person turns them on. */
 /** Comparable form of the saved features (arrays sorted), to PUT only what the person actually changed. */
 const norm = (f: SetupFeatures) => JSON.stringify({
@@ -31,7 +24,6 @@ export default function Features({ w }: { w: Wizard }) {
   const { setToast } = useAppData();
   const [f, setF] = useState<SetupFeatures | null>(null);
   const [orig, setOrig] = useState<string | null>(null); // what GET returned: unchanged values are never written back
-  const [region, setRegion] = useState<Region>("BR");
   const [keySet, setKeySet] = useState<Partial<Record<KeyName, boolean>>>({});
   const [keys, setKeys] = useState<Partial<Record<KeyName, string>>>({});
   const [skipKeys, setSkipKeys] = useState(false);
@@ -46,7 +38,6 @@ export default function Features({ w }: { w: Wizard }) {
       setF(v);
       setOrig(norm(r));
       setKeySet(r.keys ?? {});
-      setRegion(v.regions.includes("GLOBAL") ? "GLOBAL" : v.regions.length === 1 && v.regions[0] === "BR" ? "BR" : "other");
     }).catch(() => setF({ ...FRESH }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -54,13 +45,15 @@ export default function Features({ w }: { w: Wizard }) {
   if (!f) return <div className="text-muted">{t("Carregando…")}</div>;
   const set = (p: Partial<SetupFeatures>) => setF({ ...f, ...p });
   const toggleLive = (p: string) => set({ lives: f.lives.includes(p) ? f.lives.filter((x) => x !== p) : [...f.lives, p] });
-  const others = f.regions.filter((r) => r !== "GLOBAL");
+  const hasRegion = (code: string) => f.regions.includes(code);
+  // several at once (owner, 2026-11-25): Brasil, Mundo todo and other countries are collected side by side
+  const toggleRegion = (code: string) => set({ regions: hasRegion(code) ? f.regions.filter((r) => r !== code) : [...f.regions, code] });
 
   async function next() {
     if (!f) return;
     setErr("");
-    const regions = region === "BR" ? ["BR"] : region === "GLOBAL" ? ["GLOBAL"] : others;
-    if (!regions.length) { setErr(t("Escolha pelo menos um país para as tendências.")); return; }
+    const regions = f.regions;
+    if (!regions.length) { setErr(t("Marque pelo menos uma região para as tendências.")); return; }
     const body = Object.fromEntries(Object.entries(keys).filter(([k, v]) => v?.trim() && (k === "elevenlabs" ? f.elevenlabs : k.startsWith("twitch") ? f.lives.includes("twitch") : !skipKeys)));
     setSaving(true);
     try {
@@ -99,26 +92,27 @@ export default function Features({ w }: { w: Wizard }) {
         <Toggle on={f.ai_ideas} onChange={(v) => set({ ai_ideas: v })} label={t("Sugestões da IA")} hint={t("A IA lê as tendências e sugere temas com um ângulo para o seu canal.")} />
         <div className="flex flex-col gap-2">
           <span className="text-[13px] font-semibold text-body">{t("De onde vêm as tendências")}</span>
-          <div role="radiogroup" aria-label={t("De onde vêm as tendências")} className="flex flex-wrap gap-2">
-            {([["BR", t("Brasil")], ["GLOBAL", t("Mundo todo")], ["other", t("Outro país")]] as [Region, string][]).map(([k, label]) => (
-              <button key={k} type="button" role="radio" aria-checked={region === k} onClick={() => setRegion(k)}
-                className={`btn btn-sm ${region === k ? "btn-ink" : ""}`}>{label}</button>
+          <div role="group" aria-label={t("De onde vêm as tendências")} className="flex flex-wrap gap-x-5 gap-y-1">
+            {([["BR", t("Brasil")], ["GLOBAL", t("Mundo todo")]] as [string, string][]).map(([code, label]) => (
+              <label key={code} className="inline-flex cursor-pointer items-center gap-1 text-[15px] text-ink">
+                <CheckBox checked={hasRegion(code)} onChange={() => toggleRegion(code)} label={label} />
+                <span aria-hidden className="cursor-pointer">{label}</span>
+              </label>
             ))}
           </div>
-          {region === "other" && (
-            <div className="flex flex-wrap gap-2">
-              {[...COUNTRIES].sort((a, b) => t(a[1]).localeCompare(t(b[1]))).map(([code, name]) => {
-                const on = f.regions.includes(code);
-                return (
-                  <button key={code} type="button" aria-pressed={on}
-                    onClick={() => set({ regions: on ? f.regions.filter((r) => r !== code) : [...f.regions.filter((r) => r !== "GLOBAL"), code] })}
-                    className={`pill pick border-0 ${on ? "bg-ink text-white" : "bg-chip text-body hover:bg-[#e6e7ea]"}`}>
-                    {t(name)}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <span className="text-[13px] text-muted">{t("Outros países (toque para somar ou tirar):")}</span>
+          <div className="flex flex-wrap gap-2">
+            {[...COUNTRIES].sort((a, b) => t(a[1]).localeCompare(t(b[1]))).map(([code, name]) => {
+              const on = hasRegion(code);
+              return (
+                <button key={code} type="button" aria-pressed={on} onClick={() => toggleRegion(code)}
+                  className={`pill pick border-0 ${on ? "bg-ink text-white" : "bg-chip text-body hover:bg-[#e6e7ea]"}`}>
+                  {t(name)}
+                </button>
+              );
+            })}
+          </div>
+          <span className="text-[13px] text-muted">{t("Cada região marcada tem a sua própria coleta. Marque pelo menos uma.")}</span>
         </div>
       </Section>
 

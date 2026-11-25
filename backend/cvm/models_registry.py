@@ -20,7 +20,17 @@ CUDA = {
     # diffusers package with the transformer in 4-bit NF4 and T5 in 8-bit (bitsandbytes), ungated
     "voxcpm2": {"repo": "openbmb/VoxCPM2", "size": "~5 GB"},  # PyTorch weights for the voxcpm package
     "flux-schnell": {"repo": "aniketppanchal/flux.1-schnell-nf4-pkg", "size": "~13 GB (4-bit)", "ignore": ["*.png"]},
+    # hardware tiers (cvm/setup/requirements.py): engines only the CUDA machines run, picked by the card's memory
+    "flux-schnell-bf16": {},
+    "ltxv-2b": {},
+    "ltx2.3-dev": {},
+    "gemma3-qat": {},
+    # Wan 2.2 TI2V-5B in diffusers layout (WanImageToVideoPipeline, cvm/visuals/video_cuda.py)
+    "wan-ti2v-5b": {"repo": "Wan-AI/Wan2.2-TI2V-5B-Diffusers", "size": "~32 GB",
+                    "ignore": ["*.png", "*.jpg", "*.mp4", "assets/*", "examples/*"]},
 }
+_DIFFUSERS = ["model_index.json", "scheduler/*", "text_encoder/*", "text_encoder_2/*", "tokenizer/*", "tokenizer_2/*",
+              "transformer/*", "vae/*"]
 
 MODELS = {
     "whisper": {"repo": "mlx-community/whisper-large-v3-turbo", "use": "legendas palavra a palavra", "size": "~1.6 GB"},
@@ -41,6 +51,22 @@ MODELS = {
     # Wan 2.2 TI2V-5B (Apache-2.0) prepared for MLX by mlx-gen; runs through models/MLXGen/.venv (see bakeoff/README.md)
     "wan-ti2v-5b": {"repo": "AbstractFramework/wan2.2-ti2v-5b-diffusers-8bit", "use": "anima imagens FLUX em clipes curtos",
                     "size": "~17 GB (8-bit)"},
+    # ---- CUDA only (spec() is None on the Mac) ----
+    # FLUX.1 schnell in bf16, diffusers layout: the official black-forest-labs repo is gated, this Apache-2.0 copy
+    # is not. The 24 GB tier runs it as is, the 12 GB tier quantizes the transformer to 8 bits on load.
+    "flux-schnell-bf16": {"repo": "unsloth/FLUX.1-schnell", "use": "imagens geradas por IA (placas de 12 GB ou mais)",
+                          "size": "~34 GB", "cuda_only": True, "allow": _DIFFUSERS},
+    # LTX-Video 2B (0.9.x) in diffusers layout: image-to-video on 8 GB cards with offload (LTXImageToVideoPipeline)
+    "ltxv-2b": {"repo": "Lightricks/LTX-Video", "use": "anima imagens em clipes curtos (placas de 8 GB)",
+                "size": "~27 GB", "cuda_only": True, "allow": _DIFFUSERS},
+    # LTX-2.3 official PyTorch checkpoint for the presenter's audio-to-video on CUDA (Lightricks/LTX-2 a2v pipeline):
+    # the dev transformer (cast to FP8 on load), the distilled LoRA and the x2 spatial upscaler the two stages need
+    "ltx2.3-dev": {"repo": "Lightricks/LTX-2.3", "use": "apresentador falando (LTX-2 no Windows)", "size": "~48 GB",
+                   "cuda_only": True, "allow": ["ltx-2.3-22b-dev.safetensors", "ltx-2.3-22b-distilled-lora-384-1.1.safetensors",
+                                                "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"]},
+    # LTX-2.3's text encoder. Gated by Google: the person accepts the licence on Hugging Face and logs in once
+    "gemma3-qat": {"repo": "google/gemma-3-12b-it-qat-q4_0-unquantized", "use": "texto do LTX-2 no Windows",
+                   "size": "~24 GB", "cuda_only": True},
 }
 
 
@@ -130,7 +156,7 @@ def cuda_loader(group: str):
 def spec(name: str) -> dict | None:
     """The model's entry for this machine (None when it has no engine here)."""
     if MLX:
-        return MODELS[name]
+        return None if MODELS[name].get("cuda_only") else MODELS[name]
     return {**MODELS[name], **CUDA[name]} if name in CUDA else None
 
 

@@ -38,8 +38,43 @@ def test_regions_brasil_only(s, client):
     assert client.put("/setup/features", json={"regions": ["BR"]}).status_code == 200
     assert features.regions(s) == ["BR"]
     client.put("/setup/features", json={"regions": ["us", "GLOBAL"]})
-    assert features.regions(s) == ["GLOBAL"]
+    assert features.regions(s) == ["US", "GLOBAL"]
     assert client.put("/setup/features", json={"regions": []}).status_code == 422
+    assert client.put("/setup/features", json={"regions": ["Brasil"]}).status_code == 422
+
+
+def test_regions_mix_global_and_countries_end_to_end(s, client, monkeypatch):
+    """Brasil + Mundo todo + Estados Unidos at once (owner, 2026-11-25): saved as chosen, each collected apart."""
+    from cvm.trends import collect, sources
+
+    assert client.put("/setup/features", json={"regions": ["BR", "GLOBAL", "us", "BR"]}).status_code == 200
+    assert client.get("/setup/features").json()["regions"] == ["BR", "GLOBAL", "US"]
+    monkeypatch.setattr(collect, "engine", s.get_bind())
+    geos = []
+
+    class R:
+        text = "<rss></rss>"
+        status_code = 200
+        def raise_for_status(self): pass
+        def json(self): return {"items": []}
+
+    class C:
+        def get(self, url, params=None, **k):
+            geos.append((url, dict(params or {})))
+            return R()
+
+    seen = []
+
+    def news(region, client):
+        seen.append(region)
+        return sources.google_news(region, C())
+
+    monkeypatch.setattr(collect, "FETCHERS", {"news": news})
+    collect.fetch_all()
+    assert seen == ["BR", "GLOBAL", "US"]
+    # GLOBAL has no worldwide edition: it reads the US one, BR its own
+    assert any("gl=BR" in u or (p.get("gl") == "BR") for u, p in geos)
+    assert sum(1 for u, p in geos if "gl=US" in u or p.get("gl") == "US") == 2
 
 
 def test_collect_uses_chosen_regions(s, monkeypatch):

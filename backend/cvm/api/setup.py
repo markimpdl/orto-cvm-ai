@@ -20,11 +20,20 @@ def get_setup(session: Session = Depends(get_session)):
     return {
         "state": st,
         "hardware": asdict(hw),
-        "blockers": [asdict(b) for b in check(chosen, hw, need)],
+        "blockers": [asdict(b) for b in check(chosen, hw, need, _saved_engines())],
         "features": {k: f.label for k, f in FEATURES.items()},
         # the number the disk blocker used (None: the static estimate, nothing known about this machine)
         "disk": {"need_gb": need, "free_gb": round(hw.disk_free_gb, 1), "reserve_gb": DISK_RESERVE_GB},
     }
+
+
+def _saved_engines() -> dict:
+    from cvm import engines
+
+    try:
+        return engines.feature_choices()
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def _missing(features: list[str]) -> float | None:
@@ -85,6 +94,77 @@ def start_models(data: dict):
 @router.get("/models/status")
 def models_status():
     return install.status()
+
+
+# ---------- engine test (hardware tiers) ----------
+
+STALE_S = 6 * 3600  # a run marked running for longer died with its worker
+
+
+def _engine_state() -> dict:
+    from cvm.setup import engine_test
+
+    st = engine_test.load()
+    if st.get("running") and st.get("at"):
+        from datetime import UTC, datetime
+
+        if (datetime.now(UTC) - datetime.fromisoformat(st["at"])).total_seconds() > STALE_S:
+            st["running"] = False
+    return st
+
+
+@router.get("/engines")
+def get_engines(session: Session = Depends(get_session)):
+    """Per tested feature: the tiers of this machine (fits / available / reason), the engine in use and the last test."""
+    from cvm import engines
+    from cvm.setup import engine_test
+    from cvm.setup.requirements import fits, tiers
+
+    hw = detect()
+    st = _engine_state()
+    chosen = [f for f in state.get(session).get("choices", {}).get("features", []) if f in FEATURES]
+    out = {}
+    for f in engine_test.TESTED:
+        out[f] = {"label": FEATURES[f].label, "selected": f in chosen, "engine": engines.feature_engine(f),
+                  "all_tested": engine_test.test_all(f, hw),
+                  "tiers": [{"engine": t.engine, "label": t.label, "fits": fits(t, hw), "available": t.available,
+                             "reason": t.reason} for t in tiers(f, hw.platform)],
+                  "test": st.get(f)}
+    return {"platform": hw.platform, "hardware": asdict(hw), "running": bool(st.get("running")), "at": st.get("at"),
+            "features": out}
+
+
+@router.post("/engines/test")
+def start_engine_test(data: dict | None = None, session: Session = Depends(get_session)):
+    """{features?}: runs the engine test in the worker (default: the features chosen in the wizard)."""
+    from cvm.setup import engine_test
+    from cvm.workers import tasks
+
+    if _engine_state().get("running"):
+        raise HTTPException(409, "O teste dos motores já está rodando.")
+    feats = _features((data or {}).get("features")) or \
+        [f for f in state.get(session).get("choices", {}).get("features", []) if f in FEATURES]
+    todo = [f for f in engine_test.TESTED if f in feats or (f in ("ai_images", "animation") and "kids" in feats)]
+    if not todo:
+        raise HTTPException(422, "Nenhum recurso marcado tem motor para testar.")
+    from datetime import UTC, datetime
+
+    engine_test._save({**engine_test.load(), "running": True, "at": datetime.now(UTC).isoformat(timespec="seconds"),
+                       "features": todo})
+    tasks.engine_test_job(todo)
+    return _engine_state()
+
+
+@router.put("/engines")
+def put_engine(data: dict):
+    """{feature, engine}: use another engine that passed this machine's test (the avatar selector)."""
+    from cvm.setup import engine_test
+
+    try:
+        engine_test.choose(str(data.get("feature")), str(data.get("engine")))
+    except (ValueError, KeyError) as e:
+        raise HTTPException(409, str(e)) from e
+    return {"ok": True}
 
 
 @router.post("/avatar/lucas")

@@ -726,6 +726,18 @@ def collect_trends(analysis_id: int | None = None) -> None:
 
 
 @huey.task()
+def engine_test_job(features: list[str]) -> None:
+    """The install wizard's engine test (cvm/setup/engine_test.py): each tier runs in a child process that takes the
+    heavy-model lock like the pipeline does, so it waits for (and never runs beside) a video's GPU step."""
+    from cvm.setup import engine_test
+
+    try:
+        engine_test.run(features)
+    except Exception:  # noqa: BLE001
+        log.exception("engine test failed")
+
+
+@huey.task()
 def design_character_voice(channel_id: int, name: str, description: str) -> None:
     """Create or redo one series character's voice (VoxCPM2 voice design, under the GPU lock)."""
     from cvm.models import Channel

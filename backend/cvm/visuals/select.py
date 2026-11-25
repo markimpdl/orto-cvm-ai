@@ -261,7 +261,13 @@ def _user_media(scene: dict) -> dict | None:
 
 
 def ai_video_ready(kids: bool = False) -> bool:
-    from cvm.models_registry import is_ready
+    from cvm.models_registry import MLX, is_ready
+
+    if not MLX:  # CUDA: this machine's animation tier, when downloaded (cvm/visuals/video_cuda.py)
+        from cvm import engines
+        from cvm.visuals import video_cuda
+
+        return (kids or settings.ai_video_max_clips > 0) and video_cuda.ready(engines.feature_engine("animation"))
 
     wan = is_ready("wan-ti2v-5b") and (settings.models_dir / "MLXGen" / ".venv" / "bin" / "mlxgen").exists()
     return (kids or settings.ai_video_max_clips > 0) and (sources.ltx_ready() or wan)
@@ -286,12 +292,20 @@ def _animate(scene: dict, chosen: dict, seconds: float, portrait: bool, dest: Pa
 
     purpose = "kids" if scene["visual"].get("_kids") else \
         "cartoon" if DRAWN.search(scene["visual"].get("image_prompt") or "") else "realistic"
-    engine = "ltx" if engines.video_engine(purpose) == "ltx" and sources.ltx_ready() else "wan"
+    from cvm.models_registry import MLX
+
+    if MLX:
+        engine = "ltx" if engines.video_engine(purpose) == "ltx" and sources.ltx_ready() else "wan"
+    else:  # CUDA: the tier picked for this card (ltxv-2b, wan-5b…); clips of another tier are never reused
+        engine = engines.feature_engine("animation") or "none"
     steps = f"|{settings.ai_video_steps}" if engine == "wan" else ""
     key = hashlib.sha1(f"{chosen['path']}|{motion}|{seconds:.1f}{steps}".encode()).hexdigest()[:8]
     check = clip_rank.available()
     try:
-        name = {"ltx": f"ltx-{sources.ltx_version()}", "wan": "wan2.2-ti2v-5b"}[engine]
+        from cvm.visuals import video_cuda
+
+        name = {"ltx": f"ltx-{sources.ltx_version()}" if MLX else "ltx", "wan": "wan2.2-ti2v-5b",
+                **video_cuda.LABELS}.get(engine, engine)
         for take, (suffix, seed, extra) in enumerate((("", 42, ""), ("_b", 43, HOLD))):
             out = dest / f"{engine}_scene_{scene['index']:02d}_{key}{suffix}.mp4"
             t = time.time()

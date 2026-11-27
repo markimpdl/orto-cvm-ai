@@ -9,7 +9,9 @@ import { NextSlots, WeekCalendar, WeekGoal } from "@/components/ChannelWeek";
 import FacecamMarker from "@/components/FacecamMarker";
 import { MoneyTab } from "@/components/Grow";
 import QueueItem from "@/components/QueueItem";
-import { api, channelWeek, connectChannelStats, decideTitlePattern, LANG_FLAG, LANG_LABEL, PLATFORM_LABEL, STYLE_LABEL, type Channel, type ChannelStatsFull, type ChannelWeek } from "@/lib/api";
+import TiktokConnect from "@/components/TiktokConnect";
+import PublishDefaultsCard from "@/components/PublishDefaults";
+import { api, channelWeek, connectChannelStats, decideTitlePattern, isProducing, LANG_FLAG, LANG_LABEL, PLATFORM_LABEL, STYLE_LABEL, type Channel, type ChannelStatsFull, type ChannelWeek } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { groupOf } from "@/lib/pipeline";
 import ProfileForm from "./ProfileForm";
@@ -221,7 +223,7 @@ export default function ChannelQueuePage() {
   }
 
   // "Também para…": the other active channels of the same group (same persona, other languages)
-  const siblings = channel?.group ? channels.filter((c) => c.group === channel.group && c.id !== channel.id && (c.status ?? "active") === "active") : [];
+  const siblings = channel?.group ? channels.filter((c) => c.group === channel.group && c.id !== channel.id && isProducing(c)) : [];
 
   if (!channel) return <p className="text-muted">{t("Carregando canal…")}</p>;
   const niche = nicheOf(channel);
@@ -297,6 +299,10 @@ export default function ChannelQueuePage() {
       </section>
 
       {(channel.default_style === "live" || "facecam" in (channel.prefs ?? {})) && <FacecamMarker channelId={channelId} />}
+
+      {channel.platform.startsWith("youtube") && !["archived", "series"].includes(channel.status ?? "active") && <TiktokConnect channelId={channelId} />}
+
+      {channel.platform.startsWith("youtube") && <PublishDefaultsCard channelId={channelId} />}
 
       <section className="card flex flex-wrap items-center gap-4 p-5">
         <Initial name={channel.name} size={48} />

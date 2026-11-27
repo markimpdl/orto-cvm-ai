@@ -120,9 +120,10 @@ TOOLS: dict[str, Tool] = {
                                 f"snapshot_download({ACE_CHECKPOINTS!r}, local_dir='checkpoints')"]],
         lambda: _ace_ready(), vendor=["cvm_music.py"], size_gb=11, platform="windows"),
     # official LTX-2 (PyTorch): the presenter's audio-to-video (ltx_pipelines.a2vid_two_stage) for the "ltx2-q" tier;
-    # weights are the models "ltx2.3-dev" and "gemma3-qat" (models_registry)
+    # weights are the models "ltx2.3-dev" and "gemma3-qat" (models_registry). The repo ships no uv.lock, so no
+    # --frozen: uv resolves from the pyproject (torch from the cu132 index set in packages/ltx-core)
     "LTX-2": Tool("https://github.com/Lightricks/LTX-2", "c3a7efb18256cba2d76cc32f5b47811d7c9ad642", "LTX-2",
-                  [["uv", "sync", "--frozen"]], lambda: _ltx2_ready(), size_gb=6, platform="windows"),
+                  [["uv", "sync"]], lambda: _ltx2_ready(), size_gb=6, platform="windows"),
     # LatentSync 1.5 (8 GB; 1.6 needs 18 GB). Upstream pins torch 2.5.1/cu121, which has no RTX 50 kernels: the venv
     # takes the cu128 torch the Mac bake-off also ran with (2.7.1), decord is stubbed and insightface uses the CPU
     # onnxruntime (cvm_latentsync.py), as on the Mac

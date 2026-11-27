@@ -65,7 +65,7 @@ MODELS = {
                    "cuda_only": True, "allow": ["ltx-2.3-22b-dev.safetensors", "ltx-2.3-22b-distilled-lora-384-1.1.safetensors",
                                                 "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"]},
     # LTX-2.3's text encoder. Gated by Google: the person accepts the licence on Hugging Face and logs in once
-    "gemma3-qat": {"repo": "google/gemma-3-12b-it-qat-q4_0-unquantized", "use": "texto do LTX-2 no Windows",
+    "gemma3-qat": {"repo": "Lightricks/gemma-3-12b-it-qat-q4_0-unquantized", "use": "texto do LTX-2 no Windows",
                    "size": "~24 GB", "cuda_only": True},
 }
 

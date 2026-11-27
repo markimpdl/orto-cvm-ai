@@ -236,3 +236,36 @@ def test_own_live_with_facecam_keeps_the_stack_when_commenting(env, monkeypatch)
                                   None, 4.0, make_long=False)
     assert s.get(Project, out["shorts"][0]).presenter == "scenes"  # camera over the game
     assert s.get(Project, out["shorts"][1]).presenter == "editorial"  # clip only
+
+
+def test_auto_package_stacks_the_streamers_camera(env, monkeypatch):
+    """Automatic path (auto_approve_cuts): the webcam found in the recording goes on every Short's recording row,
+    so the editorial Short gets the 10% header / 40% camera / 50% game layout (owner, 2026-11-26)."""
+    from cvm.lives import package
+    s, c, video = env
+    _fake_analysis(monkeypatch, MOMENTS)
+    box = {"x": 0.7, "y": 0.05, "w": 0.25, "h": 0.3}
+    third = {"uploader": "Paulinho", "url": LIVE["url"], "channel_id": "UCother"}
+    out = package.make_package(s, c, LIVE, video, n_shorts=2, third_party=third,
+                               detect_layout=lambda ch, v, d, own: {"facecam": box, "facecam_order": "youtuber_top"})
+    for pid in out["shorts"]:
+        a = s.exec(select(Asset).where(Asset.project_id == pid, Asset.kind == "user_media")).one()
+        assert a.meta["facecam"]["w"] == 0.25 and a.meta["facecam_order"] == "youtuber_top"
+
+
+def test_auto_layout_without_camera_is_plain(env, monkeypatch):
+    from cvm.lives import cuts, package
+    s, c, video = env
+    monkeypatch.setattr(cuts, "find_layout", lambda *a, **k: {"facecam": None, "facecam_order": "youtuber_top"})
+    assert package.auto_layout(c, video, 4.0, own=False) == {}
+    monkeypatch.setattr(cuts, "find_layout", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("x")))
+    assert package.auto_layout(c, video, 4.0, own=False) == {}
+
+
+def test_resent_link_keeps_the_real_title(env):
+    from cvm.lives import runs
+    s, c, _ = env
+    url = "https://www.youtube.com/watch?v=zz"
+    runs._put(s, c, {"video_id": "zz", "url": url, "title": "FICOU RICO", "status": "error"})
+    item = runs.start_item(s, c, "zz", url=url, title=url)
+    assert item["title"] == "FICOU RICO"

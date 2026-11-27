@@ -5,8 +5,11 @@ import { useAppData } from "@/components/AppData";
 import { VideoRemovedNote } from "@/components/Bits";
 import CurationPanel, { latestCuration, type Curation } from "@/components/CurationPanel";
 import { slotText } from "@/components/ChannelWeek";
-import { API, api, channelSlots, RENDER_TARGETS, type SlotTime, type VideoRemoved } from "@/lib/api";
+import { API, api, channelSlots, isLinkedAccount, linkedTiktok, RENDER_TARGETS, type SlotTime, type VideoRemoved } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+
+const SHORT_PROFILES = ["youtube_shorts", "instagram", "tiktok"];
+const TIKTOK_MAX_S = 180; // backend render/profiles.yaml tiktok.max_seconds
 
 type Seo = { title?: string; description?: string; tags?: string[]; hashtags?: string[] };
 type VidiqReview = { title_score?: number | null; titles?: { title: string; score: number | null }[]; thumb_score?: number | null;
@@ -67,6 +70,7 @@ export default function ReviewPanel({ projectId, channelId, onScheduled, onSwapI
   const [when, setWhen] = useState(0);
   const [custom, setCustom] = useState(localInput(new Date(Date.now() + 3600_000)));
   const [plan, setPlan] = useState<Record<number, { on: boolean; channel: string }>>({});
+  const [tiktok, setTiktok] = useState<Record<number, boolean>>({}); // render id → also on TikTok (unset = channel default)
   const [err, setErr] = useState<string | null>(null);
   const channel = channelOf(channelId);
   const channelFor = (x: RenderRow) => plan[x.id]?.channel || String(channelId ?? "");
@@ -87,7 +91,7 @@ export default function ReviewPanel({ projectId, channelId, onScheduled, onSwapI
       const matches = renders.filter((r) => channel && (r.profile === channel.platform || r.profile.startsWith(channel.platform)));
       for (const r of renders) {
         // no project channel: the only channel in the video's language, else none (the user must pick — never the first in the list)
-        const sameLang = channels.filter((c) => c.language === r.language && c.status !== "archived");
+        const sameLang = channels.filter((c) => c.language === r.language && c.status !== "archived" && !isLinkedAccount(c));
         next[r.id] ??= { on: matches.length ? matches.includes(r) : true, channel: String(channelId ?? (sameLang.length === 1 ? sameLang[0].id : "")) };
       }
       return next;
@@ -108,6 +112,15 @@ export default function ReviewPanel({ projectId, channelId, onScheduled, onSwapI
   const warnings = r?.meta.qa_warnings ?? [];
   const vertical = r && r.profile !== "youtube";
   const curation = latestCuration(renders);
+  // vertical Shorts going to a YouTube channel with a linked TikTok account: "Publicar também no TikTok (@…)"
+  const tiktokRows = renders.flatMap((x) => {
+    const ch = channels.find((c) => String(c.id) === plan[x.id]?.channel);
+    const tk = ch && ch.platform.startsWith("youtube") ? linkedTiktok(channels, ch.id) : undefined;
+    if (!plan[x.id]?.on || !ch || !tk || !SHORT_PROFILES.includes(x.profile.replace(/_cuts$/, ""))) return [];
+    const tooLong = (x.meta.duration ?? 0) > TIKTOK_MAX_S + 0.5;
+    const byDefault = !ch.made_for_kids && ch.prefs?.tiktok_also !== false;
+    return [{ r: x, handle: tk.prefs?.accounts?.tiktok ?? "", tooLong, on: !tooLong && (tiktok[x.id] ?? byDefault) }];
+  });
 
   async function saveSeo() {
     if (!r) return;
@@ -123,15 +136,20 @@ export default function ReviewPanel({ projectId, channelId, onScheduled, onSwapI
     const atOf = (x: RenderRow) => (when < slots.length ? new Date((slotsOf(x)[when] ?? slots[when]).utc) : at);
     const items = renders
       .filter((x) => plan[x.id]?.on && plan[x.id]?.channel)
-      .map((x) => ({ render_id: x.id, channel_id: Number(plan[x.id].channel), scheduled_at: atOf(x).toISOString() }));
+      .map((x) => {
+        const tk = tiktokRows.find((row) => row.r.id === x.id);
+        return { render_id: x.id, channel_id: Number(plan[x.id].channel), scheduled_at: atOf(x).toISOString(), ...(tk ? { tiktok: tk.on } : {}) };
+      });
     if (!items.length) {
       setErr(t("Escolha pelo menos um vídeo e um canal em “Onde publicar”."));
       return;
     }
     try {
       if (r && (title !== (r.seo.title ?? "") || description !== (r.seo.description ?? ""))) await saveSeo();
-      await api(`/projects/${projectId}/schedule`, { method: "POST", body: JSON.stringify(items) });
-      onScheduled(when < slots.length ? slotText(slots[when], locale, t) : at.toLocaleString(locale, { dateStyle: "short", timeStyle: "short" }));
+      const res = await api<{ tiktok?: number[]; notes?: string[] }>(`/projects/${projectId}/schedule`, { method: "POST", body: JSON.stringify(items) });
+      const label = when < slots.length ? slotText(slots[when], locale, t) : at.toLocaleString(locale, { dateStyle: "short", timeStyle: "short" });
+      const extra = [res.tiktok?.length ? t("também no TikTok") : "", ...(res.notes ?? [])].filter(Boolean).join(". ");
+      onScheduled(extra ? `${label} (${extra})` : label);
     } catch (e) {
       setErr(String(e));
     }
@@ -214,6 +232,21 @@ export default function ReviewPanel({ projectId, channelId, onScheduled, onSwapI
             ))}
           </div>
         </details>
+        {tiktokRows.map((row) => (
+          <div key={row.r.id} className="flex flex-col gap-1">
+            <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" className="h-4 w-4 accent-go" checked={row.on} disabled={row.tooLong}
+                onChange={(e) => setTiktok({ ...tiktok, [row.r.id]: e.target.checked })} />
+              {t("Publicar também no TikTok (@{handle})", { handle: row.handle })}
+              {tiktokRows.length > 1 && <span className="font-normal text-muted">{t(RENDER_TARGETS[row.r.profile] ?? row.r.profile)} · {row.r.language}</span>}
+            </label>
+            <span className="text-[13px] text-muted">
+              {row.tooLong
+                ? t("Este Short passa de {max} s, o limite do TikTok. Vai só para o YouTube.", { max: TIKTOK_MAX_S })
+                : t("Mesmo arquivo do Short. Ele aparece em Publicar com a legenda do TikTok; quem posta é você.")}
+            </span>
+          </div>
+        ))}
         {err && <p className="m-0 text-sm text-alert-text">{err}</p>}
         <div className="flex flex-wrap gap-3">
           <button className="btn" onClick={onSwapImages}>{t("Trocar imagens")}</button>

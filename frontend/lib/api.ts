@@ -122,7 +122,8 @@ export type Channel = {
   brief: string | null;
   schedule?: { slots?: string[] };
   presenter?: "scenes" | "overlay" | "podcast" | "editorial";
-  prefs?: { languages?: string[]; platforms?: string[]; avatar_id?: number | null; no_avatar?: boolean; voice_variant?: string; last_episode?: number; episode_max?: Record<string, number>; hook?: boolean; bumper_mode?: string; bumper_from?: number | null; music?: boolean; image_engine?: string };
+  prefs?: { languages?: string[]; platforms?: string[]; avatar_id?: number | null; no_avatar?: boolean; voice_variant?: string; last_episode?: number; episode_max?: Record<string, number>; hook?: boolean; bumper_mode?: string; bumper_from?: number | null; music?: boolean; image_engine?: string;
+    accounts?: Record<string, string>; linked_to?: number; tiktok_also?: boolean };
   made_for_kids?: boolean;
   characters?: Record<string, { description?: string; voice?: string; ref_text?: string; language?: string; pending?: boolean; error?: string;
     look?: string; sheet?: string; sheet_seed?: number; sheet_note?: string; sheet_pending?: boolean; sheet_error?: string }>;
@@ -147,7 +148,27 @@ export type ChannelProfile = {
   cta?: { spoken?: string; written?: string }; cross_links?: string[];
 };
 /** Channels that take new videos (paused/archived ones keep their history but get no new production). */
-export const isProducing = (c: Channel) => (c.status ?? "active") === "active";
+export const isProducing = (c: Channel) => (c.status ?? "active") === "active" && !isLinkedAccount(c);
+/** A TikTok account linked to a YouTube channel (backend cvm/publish/tiktok.py): it only receives that channel's
+ *  Shorts, never new videos, and shows on its YouTube channel's page instead of the channel lists. */
+export const isLinkedAccount = (c: Channel) => c.platform === "tiktok" && !!c.prefs?.linked_to;
+/** The live (not archived) TikTok account linked to a YouTube channel. */
+export const linkedTiktok = (channels: Channel[], channelId: number | null | undefined) =>
+  channelId == null ? undefined : channels.find((c) => isLinkedAccount(c) && c.prefs?.linked_to === channelId && c.status !== "archived");
+export type TiktokInfo = { connected: boolean; channel_id: number | null; handle: string | null; also: boolean; kids: boolean; max_seconds: number };
+export const getTiktok = (channelId: number) => api<TiktokInfo>(`/channels/${channelId}/tiktok`);
+export const connectTiktok = (channelId: number, handle: string) =>
+  api<TiktokInfo>(`/channels/${channelId}/tiktok`, { method: "POST", body: JSON.stringify({ handle }) });
+export const setTiktokDefault = (channelId: number, also: boolean) =>
+  api<TiktokInfo>(`/channels/${channelId}/tiktok`, { method: "PUT", body: JSON.stringify({ also }) });
+export type PublishDefaults = {
+  synthetic: "auto" | "yes" | "no"; paid_promotion: boolean; auto_chapters: boolean; auto_places: boolean;
+  notify_subscribers: boolean; made_for_kids: boolean; category: string; categories: { id: string; name: string }[];
+};
+export const getPublishDefaults = (channelId: number) => api<PublishDefaults>(`/channels/${channelId}/publish-defaults`);
+export const setPublishDefaults = (channelId: number, body: Partial<PublishDefaults>) =>
+  api<PublishDefaults>(`/channels/${channelId}/publish-defaults`, { method: "PUT", body: JSON.stringify(body) });
+export const disconnectTiktok = (channelId: number) => api<TiktokInfo>(`/channels/${channelId}/tiktok`, { method: "DELETE" });
 export const LANG_FLAG: Record<string, string> = { "pt-BR": "🇧🇷", "en-US": "🇺🇸", "ar-AE": "🇦🇪" };
 export type Avatar = { id: number; name: string; status: string; notes: string | null; podcast_video_dir?: string | null };
 
@@ -259,7 +280,7 @@ export const decideTitlePattern = (id: number, decision: "approve" | "reject") =
   api<{ pattern: string; status: string }>(`/channels/${id}/title-patterns/${decision}`, { method: "POST" });
 
 /** Menu "Crescer" (backend cvm/api/grow.py): lives → melhores momentos + Shorts, and the monetization numbers. */
-export type LivePackage = { long: number | null; shorts: number[]; moments: { start: number; end: number }[]; method?: "viral" | "volume" };
+export type LivePackage = { long: number | null; shorts: number[]; moments: { start: number; end: number }[]; method?: "viral" | "volume"; removed?: number };
 export type LiveItem = { video_id: string; title: string; url: string | null; own?: boolean; uploader?: string | null; status: "working" | "review" | "ok" | "error" | "waiting"; error: string | null; package?: LivePackage; review?: number; at: string; progress?: PrepProgress | null };
 /** Where a download/cut analysis is now (backend cvm/lives/progress.py). */
 export type PrepProgress = {

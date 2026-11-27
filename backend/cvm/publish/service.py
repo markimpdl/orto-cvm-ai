@@ -35,21 +35,36 @@ def _guards(session: Session, project_id: int, items: list[dict]) -> None:
             guards.check_publication(session, project, render, channel)
 
 
-def schedule(session: Session, project_id: int, items: list[dict]) -> list[Publication]:
-    """items: [{render_id, channel_id, scheduled_at (ISO), mode?}] — called when the user approves the renders."""
+def _publication(session: Session, project_id: int, it: dict) -> Publication:
+    channel = session.get(Channel, it["channel_id"])
+    render = session.get(Render, it["render_id"])
+    if not channel or not render or render.project_id != project_id:
+        raise ValueError(f"invalid render/channel: {it}")
+    when = it.get("scheduled_at")
+    when = (datetime.fromisoformat(when) if isinstance(when, str) else when) if when else _default_slot(session, channel, render)
+    return Publication(render_id=render.id, channel_id=channel.id, mode=PublishMode(it.get("mode") or channel.publish_mode),
+                       scheduled_at=when, status="scheduled")
+
+
+def schedule(session: Session, project_id: int, items: list[dict], notes: list[str] | None = None) -> list[Publication]:
+    """items: [{render_id, channel_id, scheduled_at (ISO), mode?, tiktok?}] — called when the user approves the renders.
+    A vertical Short approved for a YouTube channel with a TikTok account also goes to TikTok (same file), unless
+    `tiktok` is false (cvm/publish/tiktok.py); Shorts left out of TikTok are explained in `notes`."""
+    from cvm.publish import tiktok
+
+    notes = [] if notes is None else notes
     job = session.exec(select(Job).where(Job.project_id == project_id)).one()
     _guards(session, project_id, items)
     pubs = []
-    for it in items:
-        channel = session.get(Channel, it["channel_id"])
-        render = session.get(Render, it["render_id"])
-        if not channel or not render or render.project_id != project_id:
-            raise ValueError(f"invalid render/channel: {it}")
-        when = datetime.fromisoformat(it["scheduled_at"]) if it.get("scheduled_at") else _default_slot(session, channel, render)
-        pub = Publication(render_id=render.id, channel_id=channel.id, mode=PublishMode(it.get("mode") or channel.publish_mode),
-                          scheduled_at=when, status="scheduled")
-        session.add(pub)
-        pubs.append(pub)
+    for it in items:  # added one by one: the next render's default slot sees the slots already taken
+        pubs.append(_publication(session, project_id, it))
+        session.add(pubs[-1])
+    extra = tiktok.companions(session, items, pubs, notes)
+    if extra:
+        _guards(session, project_id, extra)
+        for it in extra:
+            pubs.append(_publication(session, project_id, it))
+            session.add(pubs[-1])
     pipeline.advance(job, "scheduled", f"{len(pubs)} publicação(ões) agendada(s)")
     session.add(job)
     session.commit()
@@ -106,6 +121,17 @@ def unpublish(session: Session, pub: Publication) -> Publication:
         session.add(job)
     session.commit()
     return pub
+
+
+def cancel(session: Session, pub: Publication) -> None:
+    """Drop one post that is not out yet (e.g. "Não postar no TikTok"); the video and its other posts stay."""
+    if pub.status == "published":
+        raise ValueError("publicação já está publicada; use “Desfazer publicado” antes")
+    project_id = session.get(Render, pub.render_id).project_id
+    session.delete(pub)
+    session.flush()
+    _sync_job(session, project_id)
+    session.commit()
 
 
 def release_due(session: Session, notify) -> int:

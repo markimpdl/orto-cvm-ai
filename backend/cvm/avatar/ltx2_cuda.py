@@ -5,7 +5,7 @@ and look as the Mac's LTX presenter (cvm/avatar/talking.py), run by Lightricks' 
 frozen and generates only the video, conditioned on the avatar's photo. To fit an 8–16 GB card the transformer is
 cast to FP8 on load (`--quantization fp8-cast`) and its weights stay in RAM, streamed to the card layer by layer
 (`--offload cpu`). Weights: models_registry "ltx2.3-dev" (dev checkpoint + distilled LoRA + x2 upscaler) and
-"gemma3-qat" (Gemma 3 text encoder, gated by Google: accept the licence on Hugging Face once).
+"gemma3-qat" (Gemma 3 text encoder; Lightricks' ungated copy of Google's gated repo, same files).
 
 Long narrations are cut at pauses like the Mac presenter (talking.cut_points) and each chunk starts on the previous
 chunk's last frame. UNVERIFIED on CUDA until the owner's RTX 5060 run (VRAM/RAM peak, time per chunk); the wizard's

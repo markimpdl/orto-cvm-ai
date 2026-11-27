@@ -47,14 +47,16 @@ class Report:
         self.data["state"] = s
         self.save()
 
-    def step(self, name: str, fn) -> bool:
+    def step(self, name: str, fn, hint: str | None = None) -> bool:
+        """Run one step; a failure is recorded with `hint` = what to do by hand (shown on /publicar)."""
         try:
             fn()
             self.data["steps"].append({"step": name, "ok": True})
             return True
         except Exception as e:  # noqa: BLE001 — a failed step is left for the user to do by hand
             log.warning("%s failed: %s", name, e)
-            self.data["steps"].append({"step": name, "ok": False, "error": str(e).splitlines()[0][:200]})
+            self.data["steps"].append({"step": name, "ok": False, "error": (str(e).splitlines() or [""])[0][:200],
+                                       **({"hint": hint} if hint else {})})
             return False
         finally:
             self.save()
@@ -109,9 +111,12 @@ def _replace_text(page, selector: str, text: str, timeout: int = 20000):
     box = page.locator(selector).first
     box.wait_for(state="visible", timeout=timeout)
     box.click()
-    page.keyboard.press("Meta+A")
+    page.keyboard.press(SELECT_ALL)
     page.keyboard.press("Backspace")
     page.keyboard.insert_text(text)
+
+
+SELECT_ALL = "Meta+A" if sys.platform == "darwin" else "Control+A"
 
 
 def _untick(page, label_rx: str, timeout: int = 8000):
@@ -253,16 +258,115 @@ def youtube(page, rep: Report, render: Render, video: Path):
 
 
 
-def tiktok(page, rep: Report, render: Render, video: Path):
-    page.goto(UPLOAD_PAGES["tiktok"])
-    _wait_file_input(page, rep)
-    rep.step("arquivo de vídeo", lambda: _set_files(page, "input[type=file]", video))
-    rep.step("legenda", lambda: _replace_text(page, "div[contenteditable=true]", caption_text(render, "tiktok"), 90000))
+# TikTok Studio (www.tiktok.com/tiktokstudio/upload, 2026): a video <input type=file accept="video/*"> (older layouts
+# kept the uploader in an iframe), a Draft.js caption editor prefilled with the file name, and under "Show more" the
+# "AI-generated content" switch, which may ask to confirm with "Turn on". Labels in English and Portuguese.
+TIKTOK_FILE = "input[type=file][accept*=video], input[type=file]"
+TIKTOK_CAPTION = ("[data-e2e=caption_container] [contenteditable=true], div.public-DraftEditor-content[contenteditable=true], "
+                  ".caption-editor [contenteditable=true], div[contenteditable=true]")
+TIKTOK_SHOW_MORE = r"^\s*(show more|exibir mais|mostrar mais|ver mais|mais opç[õo]es|more options)\s*$"
+TIKTOK_AI = r"(ai-generated content|conte[úu]do gerado por (ia|intelig[êe]ncia artificial))"
+TIKTOK_TURN_ON = r"^\s*(turn on|ativar|ligar)\s*$"
+TIKTOK_HINTS = {
+    "file": "Clique em “Abrir arquivo do vídeo” no kit e arraste o arquivo para a página do TikTok Studio.",
+    "caption": "Copie a legenda no kit (botão Copiar) e cole no campo de descrição, apagando o nome do arquivo.",
+    "ai_on": "Em “Mostrar mais”, ligue “Conteúdo gerado por IA” (o avatar de IA aparece no vídeo).",
+    "ai_off": "Em “Mostrar mais”, confira se “Conteúdo gerado por IA” está desligado (não há avatar na tela).",
+}
 
-    def ai_label():
-        page.get_by_text(re.compile(r"^(Show more|Mostrar mais|Mais opções)$")).first.click(timeout=5000)
-        page.get_by_text(re.compile(r"AI-generated content|Conteúdo gerado por IA")).first.click(timeout=5000)
-    rep.step("marcar conteúdo gerado por IA", ai_label)
+
+def _tiktok_file_frame(page, timeout_s: float):
+    """The frame that holds the video input: the page itself, else an uploader iframe. Waits for a manual login."""
+    deadline = time.time() + timeout_s
+    while True:
+        if page.locator(TIKTOK_FILE).count():
+            return page.main_frame
+        for fr in page.frames:
+            try:
+                if fr != page.main_frame and fr.locator(TIKTOK_FILE).count():
+                    return fr
+            except Exception:  # noqa: BLE001 — a frame detached while we looked
+                continue
+        if time.time() > deadline:
+            raise RuntimeError("a página de upload do TikTok não abriu (falta fazer login?)")
+        time.sleep(1)
+
+
+def _checked(el) -> bool:
+    state = el.get_attribute("aria-checked")
+    if state is not None:
+        return state.lower() == "true"
+    try:
+        return el.is_checked()
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _tiktok_ai(page, want: bool):
+    """Set the "AI-generated content" switch to `want` (it opens "Show more" first; confirms "Turn on")."""
+    label = page.get_by_text(re.compile(TIKTOK_AI, re.I)).first
+    if not label.count() or not label.is_visible():
+        more = page.get_by_text(re.compile(TIKTOK_SHOW_MORE, re.I))
+        if more.count():
+            more.first.click(timeout=5000)
+        label.wait_for(state="visible", timeout=8000)
+    label.scroll_into_view_if_needed(timeout=5000)
+    row = label.locator("xpath=ancestor::*[.//*[@role='switch'] or .//input[@type='checkbox']][1]")
+    switch = row.locator("[role=switch], input[type=checkbox]").first
+    switch.wait_for(state="attached", timeout=5000)
+    if _checked(switch) == want:
+        return
+    _click_through(switch)
+    confirm = page.get_by_role("button", name=re.compile(TIKTOK_TURN_ON, re.I))
+    try:
+        confirm.first.wait_for(state="visible", timeout=3000)
+        confirm.first.click(timeout=3000)
+    except Exception:  # noqa: BLE001 — no confirmation dialog this time
+        pass
+    time.sleep(0.5)
+    if _checked(switch) != want:
+        raise RuntimeError("o botão “Conteúdo gerado por IA” não mudou")
+
+
+def tiktok(page, rep: Report, render: Render, video: Path):
+    """Attach the video, write the caption, set the AI label by the same rule as YouTube's box. Never clicks Post."""
+    page.goto(UPLOAD_PAGES["tiktok"])
+    rep.state("waiting_login")
+    frame = _tiktok_file_frame(page, LOGIN_WAIT_S)
+    rep.state("filling")
+
+    def attach():
+        if frame == page.main_frame:
+            _set_files(page, TIKTOK_FILE, video)
+        else:  # uploader inside an iframe: Playwright attaches it (≤ 50 MB through this connection)
+            frame.locator(TIKTOK_FILE).first.set_input_files(str(video))
+    if not rep.step("arquivo de vídeo", attach, TIKTOK_HINTS["file"]):
+        raise RuntimeError(TIKTOK_HINTS["file"])
+
+    text = caption_text(render, "tiktok")
+
+    def caption():
+        box = page.locator(TIKTOK_CAPTION).first
+        box.wait_for(state="visible", timeout=120000)  # shows up once the upload starts
+        deadline = time.time() + 15  # TikTok prefills the file name: write after it, or it overwrites ours
+        while time.time() < deadline and not (box.inner_text() or "").strip():
+            time.sleep(0.5)
+        # the hashtag suggestion list that opens after the last "#tag" can wipe the editor (owner, 2026-11-26:
+        # "a descrição não autopreencheu"): close it, check the text stayed, write again up to 3 times
+        head = text.strip().splitlines()[0][:15] if text.strip() else ""
+        for _ in range(3):
+            _replace_text(page, TIKTOK_CAPTION, text, 10000)
+            time.sleep(1.5)
+            page.keyboard.press("Escape")
+            time.sleep(1.0)
+            if head in (box.inner_text() or ""):
+                return
+        raise RuntimeError("o TikTok apagou a legenda; cole a legenda do kit")
+    rep.step("legenda", caption, TIKTOK_HINTS["caption"])
+
+    ai = bool((render.meta or {}).get("_ai"))
+    rep.step("conteúdo gerado por IA: ligado (avatar de IA)" if ai else "conteúdo gerado por IA: desligado (sem avatar)",
+             lambda: _tiktok_ai(page, ai), TIKTOK_HINTS["ai_on" if ai else "ai_off"])
 
 
 def instagram(page, rep: Report, render: Render, video: Path):
@@ -422,6 +526,10 @@ def run(pub_id: int) -> None:
 
         synthetic = youtube_rules(channel)["synthetic"]  # "auto" (owner's rule) = only with the avatar on screen
         ai = avatar_on_screen(s, project, render) if synthetic == "auto" else synthetic == "yes"
+        if channel.platform.value == "tiktok":  # same rule, read from the YouTube channel it is linked to
+            from cvm.publish.tiktok import ai_label
+
+            ai = ai_label(s, project, render, channel)
         s.expunge_all()
     try:
         port = ensure_chrome(channel.id)
@@ -460,7 +568,8 @@ def run(pub_id: int) -> None:
                         break
             try:
                 html = page.locator("body").inner_text()
-                m = re.search(r"https://(?:youtu\.be|www\.youtube\.com/shorts|youtube\.com/shorts)/[\w-]+", html)
+                m = re.search(r"https://(?:youtu\.be|www\.youtube\.com/shorts|youtube\.com/shorts)/[\w-]+"
+                              r"|https://www\.tiktok\.com/@[\w.]+/video/\d+", html)
                 if m and m.group(0) != rep.data["detected_url"]:
                     rep.data["detected_url"] = m.group(0)
                     rep.save()

@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useAppData } from "@/components/AppData";
-import { api, type Trend } from "@/lib/api";
+import { api, isProducing, type Trend } from "@/lib/api";
 import {
   getDiscover, getFollow, getGlobalResearch, produceHref, runFollow, saveFollow, startDiscover, startGlobalResearch,
   type DiscoverResult, type DiscoverState, type FollowChannel, type FollowState, type GlobalReport, type HotItem,
@@ -110,7 +110,7 @@ function HotCard({ item }: { item: HotItem }) {
 function AfterLive({ item }: { item: HotItem }) {
   const { t } = useT();
   const { channels, setToast } = useAppData();
-  const active = channels.filter((c) => c.status === "active" && !c.made_for_kids);
+  const active = channels.filter((c) => c.status === "active" && isProducing(c) && !c.made_for_kids);
   const [open, setOpen] = useState(false);
   const [cid, setCid] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -320,7 +320,7 @@ export function GlobalResearchTab() {
   if (data === null) return <div className="card p-5 text-alert-text">{t("Não consegui falar com a API. Ela está ligada?")}</div>;
   const n = (v: number | null) => (v == null ? "—" : v.toLocaleString(locale, { maximumFractionDigits: 0 }));
   const r = data.reports[pick];
-  const active = channels.filter((c) => (c.status ?? "active") === "active");
+  const active = channels.filter(isProducing);
   return (
     <div className="flex flex-col gap-4">
       <section className="card flex flex-col gap-3 p-5" aria-labelledby="h-gresearch">

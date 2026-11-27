@@ -151,11 +151,14 @@ def with_channel_extras(description: str | None, channel: Channel | None) -> str
 
 
 def caption_text(render: Render, platform: str, channel: Channel | None = None) -> str:
+    if platform == "tiktok":  # its own caption: title + short text + 3–5 hashtags, no YouTube-only lines
+        from cvm.publish.tiktok import caption
+
+        return caption(render)
     seo = render.seo or {}
     tags = " ".join(f"#{h.lstrip('#')}" for h in seo.get("hashtags", []))
     desc = with_channel_extras(seo.get("description"), channel) if channel else seo.get("description", "")
-    return f"{seo.get('title', '')}\n\n{desc}\n\n{tags}".strip() if platform != "tiktok" else \
-        f"{desc or seo.get('title', '')} {tags}".strip()[:2200]
+    return f"{seo.get('title', '')}\n\n{desc}\n\n{tags}".strip()
 
 
 # ---------- YouTube ----------

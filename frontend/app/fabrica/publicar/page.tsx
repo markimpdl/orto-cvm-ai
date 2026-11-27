@@ -45,16 +45,26 @@ type Kit = {
   synthetic?: boolean;
   category?: { id: string; name: string } | null;
   chapters?: boolean;
+  // TikTok kit (backend cvm/api/publish.py _tiktok_kit)
+  ai_label?: boolean;
+  handle?: string | null;
 };
 type KitVideo = { title: string | null; url: string; views: number | null; why: string };
 
-type BrowserStatus = { state: string; steps: { step: string; ok: boolean; error?: string }[]; detected_url: string | null; error?: string };
+type BrowserStatus = { state: string; steps: { step: string; ok: boolean; error?: string; hint?: string }[]; detected_url: string | null; error?: string };
 
 const asDate = (s: string) => new Date(s.endsWith("Z") || s.includes("+") ? s : s + "Z");
 /** Deletes the whole project behind a post (asks first). */
 async function removePub(p: Pub, after: () => void) {
   if (!p.project_id) return;
   if (await deleteProject({ id: p.project_id, title: p.project_title ?? tr("este vídeo"), job: undefined })) after();
+}
+
+/** Drops only this post (e.g. the TikTok copy of a Short); the project and its other posts stay. */
+async function cancelPub(p: Pub, after: () => void) {
+  if (!confirm(tr("Tirar este vídeo do TikTok? O post do YouTube continua."))) return;
+  await api(`/publications/${p.id}`, { method: "DELETE" });
+  after();
 }
 
 const RECENT_PAGE = 10;
@@ -94,6 +104,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 function BrowserAssist({ pub, onUrl }: { pub: Pub; onUrl: (u: string) => void }) {
   const [st, setSt] = useState<BrowserStatus | null>(null);
   const { t } = useT();
+  const tk = pub.channel.platform === "tiktok";
   const active = st && !["closed", "idle"].includes(st.state);
   const busy = st && ["starting", "waiting_login", "filling"].includes(st.state); // review/manual: may start over
   useEffect(() => {
@@ -111,13 +122,20 @@ function BrowserAssist({ pub, onUrl }: { pub: Pub; onUrl: (u: string) => void })
     <details className="rounded-xl border border-line px-4 py-3">
       <summary className="cursor-pointer text-sm font-semibold">{t("Preparar no navegador (opcional)")}</summary>
       <div className="mt-3 flex flex-col gap-2 text-sm text-body">
-        <p className="m-0">{t("Abre o upload no Chrome, anexa o vídeo e preenche os textos. O clique em Publicar é seu.")}</p>
+        <p className="m-0">{tk
+          ? t("Abre o TikTok Studio no Chrome, anexa o vídeo, cola a legenda e acerta o rótulo de IA. O clique em Postar é seu.")
+          : t("Abre o upload no Chrome, anexa o vídeo e preenche os textos. O clique em Publicar é seu.")}</p>
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-sm" title={busy ? t("Para a tentativa atual e começa de novo") : undefined} onClick={() => api(`/publications/${pub.id}/browser`, { method: "POST" }).then(() => { setSt({ state: "starting", steps: [], detected_url: null }); onUrl(""); })}>{busy ? t("Recomeçar") : st && st.state !== "idle" ? t("Preparar de novo") : t("Preparar no navegador")}</button>
-          <button className="btn btn-sm" onClick={() => api(`/channels/${pub.channel.id}/browser-login`, { method: "POST" })}>{t("Fazer login no canal (1ª vez)")}</button>
+          <button className="btn btn-sm" onClick={() => api(`/channels/${pub.channel.id}/browser-login`, { method: "POST" })}>{tk ? t("Fazer login no TikTok (1ª vez)") : t("Fazer login no canal (1ª vez)")}</button>
         </div>
         {st && st.state !== "idle" && <p className="m-0 text-warn-text">{BROWSER_STATE[st.state] ? t(BROWSER_STATE[st.state]) : st.state}</p>}
-        {st?.steps.map((s, i) => <span key={i} className={s.ok ? "text-go-text" : "text-alert-text"} title={s.error}>{s.ok ? "✓" : `✕ ${t("(fazer à mão)")}`} {s.step}</span>)}
+        {st?.steps.map((s, i) => (
+          <span key={i} className={s.ok ? "text-go-text" : "text-alert-text"} title={s.error}>
+            {s.ok ? "✓" : `✕ ${t("(fazer à mão)")}`} {s.step}
+            {!s.ok && s.hint && <span className="block pl-5 text-body">{t(s.hint)}</span>}
+          </span>
+        ))}
         {st?.error && <p className="m-0 text-alert-text">{st.error}</p>}
       </div>
     </details>
@@ -174,6 +192,7 @@ function PublishKit({ pub, onDone }: { pub: Pub; onDone: () => void }) {
     api<Kit>(`/publications/${pub.id}/kit`).then(setKit).catch(() => {});
   }, [pub.id]);
   const yt = pub.channel.platform.startsWith("youtube");
+  const tk = pub.channel.platform === "tiktok";
   const removed = pub.render.meta?.video_removed ?? kit?.video_removed;
 
   async function done() {
@@ -186,7 +205,9 @@ function PublishKit({ pub, onDone }: { pub: Pub; onDone: () => void }) {
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-display text-[22px] leading-none font-bold">{whenLabel(asDate(pub.scheduled_at), locale)}</span>
         <span className="flex-[1_1_240px] text-base font-semibold">{pub.project_title}</span>
-        {pub.status === "scheduled" && <span className="pill bg-chip text-warn-text">{t("agendado para {time}, pode postar antes ou agendar no YouTube para esse horário", { time: whenLabel(asDate(pub.scheduled_at), locale) })}</span>}
+        {pub.status === "scheduled" && <span className="pill bg-chip text-warn-text">{tk
+          ? t("agendado para {time}, pode postar antes ou agendar no TikTok Studio para esse horário", { time: whenLabel(asDate(pub.scheduled_at), locale) })
+          : t("agendado para {time}, pode postar antes ou agendar no YouTube para esse horário", { time: whenLabel(asDate(pub.scheduled_at), locale) })}</span>}
         <span className="pill bg-chip text-body">{pub.channel.name} · {PLATFORM_LABEL[pub.channel.platform] ?? pub.channel.platform} · {t(RENDER_TARGETS[pub.render.profile] ?? pub.render.profile)} · {pub.render.language}</span>
       </div>
       {!kit ? (
@@ -220,13 +241,20 @@ function PublishKit({ pub, onDone }: { pub: Pub; onDone: () => void }) {
             )}
           </div>
           {yt && <KitFlags kit={kit} />}
+          {tk && (
+            <div className="flex flex-wrap gap-2 rounded-[14px] bg-chip p-3 text-xs">
+              {kit.handle && <span className="pill bg-surface text-body">@{kit.handle}</span>}
+              <span className="pill bg-surface text-body">{kit.ai_label ? t("Conteúdo gerado por IA: ligar") : t("Conteúdo gerado por IA: desligado")}</span>
+            </div>
+          )}
           {!!kit.checklist.length && (
             <ul className="m-0 flex flex-col gap-1 pl-5 text-sm text-body">{kit.checklist.map((c) => <li key={c}>{c}</li>)}</ul>
           )}
           <div className="flex flex-wrap items-end gap-3">
             {!removed && <button className="btn" onClick={() => api(`/publications/${pub.id}/reveal`, { method: "POST" })}>{t("Abrir arquivo do vídeo")}</button>}
-            <a className="btn" href={kit.upload_page} target="_blank" rel="noreferrer"><IconExternal />{t("Página de upload")}</a>
-            <a className="btn" href={`${API}${kit.thumbnail_url}`} download>{t("Baixar thumbnail")}</a>
+            {!removed && <a className="btn" href={`${API}${kit.file_url}`} download>{t("Baixar vídeo")}</a>}
+            <a className="btn" href={kit.upload_page} target="_blank" rel="noreferrer"><IconExternal />{tk ? t("Abrir TikTok Studio") : t("Página de upload")}</a>
+            {!tk && <a className="btn" href={`${API}${kit.thumbnail_url}`} download>{t("Baixar thumbnail")}</a>}
           </div>
           {(kit.title_variants?.length ?? 0) > 1 && (
             <div className="flex flex-col gap-1.5">
@@ -255,7 +283,9 @@ function PublishKit({ pub, onDone }: { pub: Pub; onDone: () => void }) {
               <input type="url" className="input font-normal" placeholder={t("Cole aqui depois de publicar")} value={url} onChange={(e) => setUrl(e.target.value)} />
             </label>
             <button className="btn btn-go" onClick={done}>{t("Marcar como publicado")}</button>
-            <button className="btn btn-danger" onClick={() => removePub(pub, onDone)}>{t("Excluir")}</button>
+            {tk
+              ? <button className="btn" title={t("Só tira o post do TikTok; o vídeo e o post do YouTube continuam")} onClick={() => cancelPub(pub, onDone)}>{t("Não postar no TikTok")}</button>
+              : <button className="btn btn-danger" onClick={() => removePub(pub, onDone)}>{t("Excluir")}</button>}
           </div>
           <BrowserAssist pub={pub} onUrl={onUrl} />
           </div>

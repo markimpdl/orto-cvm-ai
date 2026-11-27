@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useAppData } from "@/components/AppData";
 import { goalLine } from "@/components/ChannelWeek";
 import { IconPlus } from "@/components/Icons";
-import { api, channelGoals, LANG_FLAG, type ChannelGoals } from "@/lib/api";
+import { api, channelGoals, isLinkedAccount, LANG_FLAG, type ChannelGoals } from "@/lib/api";
 import { useFeatures } from "@/lib/features";
 import { useT, type Lang } from "@/lib/i18n";
 import { fmtAgo, fmtClock, fmtDuration, groupOf } from "@/lib/pipeline";
@@ -126,7 +126,7 @@ function ChannelNav({ path }: { path: string }) {
     const i = setInterval(load, 60_000);
     return () => clearInterval(i);
   }, [path, channels]);
-  const archived = channels.filter((c) => c.status === "archived");
+  const archived = channels.filter((c) => c.status === "archived" && !isLinkedAccount(c));
   const items = [
     ...goals.map((g) => ({ id: g.id, name: g.name, language: g.language, status: g.status, line: goalLine(g.goal, t, locale) })),
     ...(showArchived ? archived.map((c) => ({ id: c.id, name: c.name, language: c.language, status: "archived", line: "" })) : []),

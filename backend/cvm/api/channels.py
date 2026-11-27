@@ -16,10 +16,118 @@ def _channel(session: Session, channel_id: int) -> Channel:
 
 
 def _producing(session: Session, channel_id: int) -> Channel:
+    from cvm.publish.tiktok import is_linked_account
+
     c = _channel(session, channel_id)
     if (c.status or "active") != "active":
         raise HTTPException(409, f"O canal {c.name} está {'pausado' if c.status == 'paused' else 'arquivado'}.")
+    if is_linked_account(c):
+        raise HTTPException(409, f"{c.name} é a conta do TikTok de outro canal: recebe só os Shorts dele.")
     return c
+
+
+# ---- linked TikTok account (cvm/publish/tiktok.py) ----------------------------------------------------------------
+
+@router.get("/{channel_id}/tiktok")
+def tiktok_account(channel_id: int, session: Session = Depends(get_session)):
+    """{connected, channel_id, handle, also, kids, max_seconds}: the TikTok account linked to this YouTube channel."""
+    from cvm.publish import tiktok
+
+    return tiktok.info(session, _channel(session, channel_id))
+
+
+@router.post("/{channel_id}/tiktok")
+def connect_tiktok(channel_id: int, body: dict, session: Session = Depends(get_session)):
+    """{handle: "@conta", also?: bool}: link a TikTok account (a sibling channel in the same group, same language)."""
+    from cvm.publish import tiktok
+
+    channel = _channel(session, channel_id)
+    try:
+        tiktok.connect(session, channel, str(body.get("handle") or ""))
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    if "also" in body:
+        channel.prefs = {**(channel.prefs or {}), "tiktok_also": bool(body["also"])}
+        session.add(channel)
+        session.commit()
+    return tiktok.info(session, channel)
+
+
+@router.put("/{channel_id}/tiktok")
+def tiktok_default(channel_id: int, body: dict, session: Session = Depends(get_session)):
+    """{also: bool}: tick "Publicar também no TikTok" by default on this channel's Shorts."""
+    from cvm.publish import tiktok
+
+    channel = _channel(session, channel_id)
+    channel.prefs = {**(channel.prefs or {}), "tiktok_also": bool(body.get("also"))}
+    session.add(channel)
+    session.commit()
+    return tiktok.info(session, channel)
+
+
+def _publish_defaults(c) -> dict:
+    """The upload choices shown on the channel page (owner, 2026-11-26: "quero poder ajustar isso na tela do canal")."""
+    from cvm.publish.platforms import CATEGORIES, youtube_rules
+
+    rules, prefs = youtube_rules(c), (c.prefs or {})
+    off = {n for n, _ in rules["off_boxes"]}
+    cat = str(prefs.get("youtube_category") or "")
+    return {"synthetic": rules["synthetic"], "paid_promotion": rules["paid_promotion"],
+            "auto_chapters": "Capítulos automáticos" not in off,
+            "auto_places": "Permitir a localização automática" not in off,
+            "notify_subscribers": rules["notify_subscribers"], "made_for_kids": bool(c.made_for_kids),
+            "category": cat if cat in CATEGORIES and prefs.get("youtube_category_fixed") else "auto",
+            "categories": [{"id": k, "name": v[0]} for k, v in CATEGORIES.items()]}
+
+
+@router.get("/{channel_id}/publish-defaults")
+def get_publish_defaults(channel_id: int, session: Session = Depends(get_session)):
+    """{synthetic: auto|yes|no, paid_promotion, auto_chapters, auto_places, notify_subscribers, made_for_kids,
+    category: "auto"|id, categories}: what "Preparar no navegador" and the kit fill on YouTube for this channel."""
+    return _publish_defaults(_channel(session, channel_id))
+
+
+@router.put("/{channel_id}/publish-defaults")
+def put_publish_defaults(channel_id: int, body: dict, session: Session = Depends(get_session)):
+    """Any of the GET fields; saved in Channel.prefs.publish_defaults (+ made_for_kids, youtube_category fixed)."""
+    from cvm.publish.platforms import CATEGORIES
+
+    c = _channel(session, channel_id)
+    prefs = dict(c.prefs or {})
+    pd = dict(prefs.get("publish_defaults") or {})
+    if "synthetic" in body:
+        if body["synthetic"] not in ("auto", "yes", "no"):
+            raise HTTPException(422, "synthetic: auto, yes ou no")
+        pd["synthetic"] = body["synthetic"]
+    for k in ("paid_promotion", "auto_chapters", "auto_places", "notify_subscribers"):
+        if k in body:
+            pd[k] = bool(body[k])
+    prefs["publish_defaults"] = pd
+    if "category" in body:
+        cat = str(body["category"] or "auto")
+        if cat == "auto":
+            prefs.pop("youtube_category_fixed", None)
+        elif cat in CATEGORIES:
+            prefs["youtube_category"], prefs["youtube_category_fixed"] = cat, True
+        else:
+            raise HTTPException(422, "categoria desconhecida")
+    if "made_for_kids" in body:
+        c.made_for_kids = bool(body["made_for_kids"])
+    c.prefs = prefs
+    session.add(c)
+    session.commit()
+    session.refresh(c)
+    return _publish_defaults(c)
+
+
+@router.delete("/{channel_id}/tiktok")
+def disconnect_tiktok(channel_id: int, session: Session = Depends(get_session)):
+    """Unlink the TikTok account: its channel is archived (history kept); scheduled TikTok posts stay on /publicar."""
+    from cvm.publish import tiktok
+
+    channel = _channel(session, channel_id)
+    tiktok.disconnect(session, channel)
+    return tiktok.info(session, channel)
 
 
 def _latest(session: Session, channel_id: int) -> TrendAnalysis | None:
@@ -231,11 +339,12 @@ def channel_goals(session: Session = Depends(get_session)):
     """The sidebar's summary: every active or paused channel with this week's goal per format."""
     from cvm import schedule
     from cvm.channels import FLAGS
+    from cvm.publish.tiktok import is_linked_account
 
     out = []
     for c in session.exec(select(Channel).order_by(col(Channel.id))).all():
-        if (c.status or "active") not in ("active", "paused"):
-            continue
+        if (c.status or "active") not in ("active", "paused") or is_linked_account(c):
+            continue  # a linked TikTok account shows on its YouTube channel's page
         out.append({"id": c.id, "name": c.name, "language": c.language, "flag": FLAGS.get(c.language, ""),
                     "status": c.status or "active", "youtube_handle": c.youtube_handle,
                     "goal": schedule.week_goal(session, c)})

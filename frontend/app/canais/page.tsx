@@ -6,7 +6,7 @@ import { useAppData } from "@/components/AppData";
 import { Initial, PageHeader } from "@/components/Bits";
 import { useT, type T } from "@/lib/i18n";
 import { useLanguages } from "@/lib/useLanguages";
-import { api, LANG_LABEL, PLATFORM_LABEL, PLATFORMS, STYLE_LABEL, STYLES, type Avatar, type Channel, LANG_FLAG } from "@/lib/api";
+import { api, isLinkedAccount, LANG_LABEL, linkedTiktok, PLATFORM_LABEL, PLATFORMS, STYLE_LABEL, STYLES, type Avatar, type Channel, LANG_FLAG } from "@/lib/api";
 
 const EMPTY = {
   name: "", platform: "youtube_shorts", language: "pt-BR", default_style: "explainer", avatar_id: "", publish_mode: "manual", brief: "", slots: "", presenter: "scenes",
@@ -117,8 +117,9 @@ export default function ChannelsPage() {
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   // series published on the novelinha channels are managed on Fábrica > Séries, not here
-  const archived = all.filter((c) => c.status === "archived").length;
-  const channels = all.filter((c) => c.status !== "series" && (showArchived || c.status !== "archived"));
+  // a linked TikTok account is shown (and managed) on its YouTube channel's page, not as a channel of its own
+  const archived = all.filter((c) => c.status === "archived" && !isLinkedAccount(c)).length;
+  const channels = all.filter((c) => c.status !== "series" && !isLinkedAccount(c) && (showArchived || c.status !== "archived"));
 
   async function setStatus(c: Channel, status: string) {
     await api(`/channels/${c.id}`, { method: "PATCH", body: JSON.stringify({ status }) });
@@ -163,6 +164,7 @@ export default function ChannelsPage() {
                 <li>{t("Idioma padrão:")} {t(LANG_LABEL[c.language] ?? c.language)}</li>
                 <li>{t("Avatar aparece:")} {c.presenter === "overlay" ? t("o vídeo inteiro, recortado embaixo") : c.presenter === "editorial" ? t("não aparece (formato editorial, voz do canal)") : c.presenter === "podcast" ? t("podcast no estúdio") : t("só nas cenas de avatar")}</li>
                 {c.made_for_kids && <li>{t("Conteúdo para crianças (YouTube “feito para crianças”)")}</li>}
+                {linkedTiktok(all, c.id) && <li>{t("TikTok: @{handle}", { handle: linkedTiktok(all, c.id)?.prefs?.accounts?.tiktok ?? "" })}</li>}
                 {!!c.schedule?.slots?.length && <li>{t("Horários:")} {c.schedule.slots.join(", ")}</li>}
                 {c.status === "paused" && <li className="text-warn-text">{t("Pausado: aparece no menu, mas não recebe vídeos novos.")}</li>}
                 {c.status === "archived" && <li className="text-muted">{t("Arquivado: nada foi apagado; histórico e publicações continuam guardados.")}</li>}

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAppData } from "@/components/AppData";
 import { PrepBar, PrepList, usePrep } from "@/components/PrepProgress";
 import {
-  api, connectChannelStats, deleteLive, getCutSettings, getLives, putCutSettings, getMonetization, getResearch, getViral, saveViralSettings, sendLiveLink, startResearch, startViral, uploadLive,
+  api, connectChannelStats, deleteLive, isProducing, type Channel, getCutSettings, getLives, putCutSettings, getMonetization, getResearch, getViral, saveViralSettings, sendLiveLink, startResearch, startViral, uploadLive,
   type CutSettings, type LiveItem, type LivesStatus, type Monetization, type ResearchReport, type ViralState,
 } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -14,7 +14,7 @@ import { useT } from "@/lib/i18n";
  *  Fábrica > Clips e cortes (Lives, Cortes), Em alta > Pesquisa and Canais > Monetização. */
 
 const KEY = "crescer.channel";
-const isActive = (c: { status?: string | null }) => (c.status ?? "active") === "active";
+const isActive = (c: Channel) => isProducing(c); // linked TikTok accounts take no material of their own
 
 /** Channel picked for Clips/Cortes, remembered per browser: the saved pick while it is an active channel, else the
  *  first active channel; null while the channels load or when there is none. */
@@ -206,6 +206,7 @@ export function LivesTab({ channelId }: { channelId: number }) {
                   <div className="flex flex-wrap gap-2 text-sm">
                     {it.package.long != null && <Link className="btn btn-sm" href={`/projetos/${it.package.long}`}>{t("Melhores momentos")}</Link>}
                     {it.package.shorts.map((id, i) => <Link key={id} className="btn btn-sm" href={`/projetos/${id}`}>{t("Short {n}", { n: i + 1 })}</Link>)}
+                    {!!it.package.removed && <span className="text-muted">{t("{n} apagado(s)", { n: it.package.removed })}</span>}
                   </div>
                 )}
               </li>

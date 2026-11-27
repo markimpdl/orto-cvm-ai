@@ -131,3 +131,17 @@ def test_api_delete(env):
     r = c.delete("/grow/4/lives", params={"video_id": VID})
     assert r.status_code == 200 and r.json()["freed"] > 0 and r.json()["deleted"] == VID
     assert c.delete("/grow/4/lives", params={"video_id": VID}).status_code == 404
+
+
+def test_status_hides_links_to_deleted_projects(session_factory=None):
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock, patch
+
+    from cvm.lives import runs
+
+    sess = MagicMock()
+    sess.exec.return_value.all.return_value = [5]
+    items = [{"video_id": "a", "status": "ok", "package": {"long": 9, "shorts": [5, 6]}}]
+    with patch.object(runs, "_items", return_value=items):
+        out = runs.status(sess, SimpleNamespace(id=1))["items"][0]["package"]
+    assert out["shorts"] == [5] and out["long"] is None and out["removed"] == 2

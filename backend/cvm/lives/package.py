@@ -101,7 +101,7 @@ def chat_density(live: dict, video: Path) -> dict[int, float]:
 
 def make_package(session: Session, channel: Channel, live: dict, video: Path, n_shorts: int | None = None,
                  third_party: dict | None = None, pick=None, examples: list[str] | None = None, min_shorts: int = 0,
-                 taste: list[str] | None = None) -> dict:
+                 taste: list[str] | None = None, detect_layout=None) -> dict:
     """The automatic path (no cut editor: Channel.prefs.auto_approve_cuts, or a fixed n_shorts): analyse, pick the
     moments, create the projects. third_party={uploader, url, channel_id} for another creator's video: style "react"
     (the avatar comments on the moments: never a plain repost, YouTube's reused-content rule), credit on screen and
@@ -127,7 +127,27 @@ def make_package(session: Session, channel: Channel, live: dict, video: Path, n_
                 meta = {**meta, "moments": chat.boost(meta.get("moments") or [], dens, live_s)}
         moments, method = (pick or viral.pick_moments)(video, meta, live["title"], not third_party, source_lang,
                                                        duration=live_s, **kw)
-    return create_projects(session, channel, live, video, r, moments, method, third_party, dur)
+    # the streamer's camera, as in the cut editor (owner, 2026-11-26: the automatic path made Shorts without the
+    # 10% header / 40% camera / 50% game layout because only cuts.analyse looked for the camera)
+    layout = (detect_layout or auto_layout)(channel, video, float(live.get("duration") or dur), not third_party)
+    return create_projects(session, channel, live, video, r, moments, method, third_party, dur, layout=layout)
+
+
+def auto_layout(channel: Channel, video: Path, duration: float, own: bool) -> dict:
+    """{facecam, facecam_order} for the automatic package: the channel's box for an own recording, else the webcam
+    found by cvm/lives/facecam.py; {} when none is found (plain editorial layout) or detection fails."""
+    from cvm.lives.cuts import find_layout
+    from cvm.render.stack import order_of, validate
+
+    try:
+        found = find_layout(channel, video, duration, own=own)
+        box = found.get("facecam")
+        if not box:
+            return {}
+        return {"facecam": validate(box), "facecam_order": order_of(found.get("facecam_order"))}
+    except Exception as e:  # noqa: BLE001 — the Shorts are still made, in the plain editorial layout
+        log.warning("facecam detection for %s failed: %s", video, e)
+        return {}
 
 
 def create_projects(session: Session, channel: Channel, live: dict, video: Path, r: dict, moments: list[dict],

@@ -93,6 +93,9 @@ def start_item(session: Session, channel: Channel, video_id: str, **fields) -> d
         at = datetime.fromisoformat(old["at"])
         if now() - (at if at.tzinfo else at.replace(tzinfo=now().tzinfo)) < timedelta(hours=LEASE_H):
             raise AlreadyDone("Esse vídeo já está sendo processado.")
+    known = (old or {}).get("title")
+    if known and known != (old or {}).get("url") and fields.get("title") in (None, "", fields.get("url"), (old or {}).get("url")):
+        fields = {k: v for k, v in fields.items() if k != "title"}  # a re-sent link keeps the video's real title
     return _put(session, channel, {**(old or {}), "video_id": video_id, "status": "working", "error": None, **fields})
 
 
@@ -204,8 +207,19 @@ def _fetch(session: Session, channel: Channel, item: dict, old: dict, vid: str, 
 
 def status(session: Session, channel: Channel) -> dict:
     """The items; a working one carries its step (`progress`, cvm/lives/progress.py)."""
+    from sqlmodel import select
+
+    from cvm.models import Project
+
     items = _items(session, channel)
+    alive = set(session.exec(select(Project.id)).all())
     for i in items:
+        pk = i.get("package")
+        if isinstance(pk, dict):  # projects deleted since: no dead links ("Projeto não encontrado")
+            shorts = [x for x in pk.get("shorts") or [] if x in alive]
+            gone = len(pk.get("shorts") or []) - len(shorts) + (1 if pk.get("long") and pk["long"] not in alive else 0)
+            i["package"] = {**pk, "shorts": shorts, "long": pk.get("long") if pk.get("long") in alive else None,
+                            "removed": gone}
         if i.get("status") == "working":
             i["progress"] = progress.get(session, progress.lives_key(channel.id, i["video_id"]))
     return {"items": items}

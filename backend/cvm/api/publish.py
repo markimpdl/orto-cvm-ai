@@ -69,15 +69,31 @@ class ScheduleItem(BaseModel):
     channel_id: int
     scheduled_at: str | None = None
     mode: str | None = None
+    tiktok: bool | None = None  # a Short for a YouTube channel with a TikTok account: also post there (None = default)
 
 
 @router.post("/projects/{project_id}/schedule")
 def schedule(project_id: int, items: list[ScheduleItem], session: Session = Depends(get_session)):
+    notes: list[str] = []
     try:
-        pubs = service.schedule(session, project_id, [i.model_dump() for i in items])
+        pubs = service.schedule(session, project_id, [i.model_dump() for i in items], notes)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(409, str(e)) from e
-    return {"scheduled": [p.id for p in pubs]}
+    tiktok = [p.id for p in pubs if (c := session.get(Channel, p.channel_id)) and c.platform.value == "tiktok"]
+    return {"scheduled": [p.id for p in pubs], "tiktok": tiktok, "notes": notes}
+
+
+@router.delete("/publications/{pub_id}")
+def cancel_publication(pub_id: int, session: Session = Depends(get_session)):
+    """Drop one post that is not out yet (e.g. the TikTok copy of a Short); the video and its other posts stay."""
+    p = session.get(Publication, pub_id)
+    if not p:
+        raise HTTPException(404)
+    try:
+        service.cancel(session, p)
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+    return {"deleted": pub_id}
 
 
 @router.get("/publications/due")
@@ -201,6 +217,9 @@ def kit(pub_id: int, session: Session = Depends(get_session)):
     category = {"id": cat_id, "name": CATEGORIES[cat_id][0]} if yt else None
     title_variants = _title_variants(session, r, seo) if yt and not short else []
     chapters = bool(re.search(r"(?m)^\s*0?0:00\b", description))
+    if platform == "tiktok":
+        return {**_tiktok_kit(session, p, r, c, project), "end_screen_video": None, "end_screen_from": None,
+                "related_video": None, "category": None, "chapters": False, "title_variants": []}
     checklist = ["Enviar o arquivo de vídeo", "Colar título e descrição"]
     if rule != "auto":  # the channel's own choice (install wizard), whatever is on screen
         checklist.append(f"Conteúdo alterado ou sintético: {'Sim' if synthetic else 'Não'} (escolha do canal)")
@@ -230,7 +249,7 @@ def kit(pub_id: int, session: Session = Depends(get_session)):
         else:
             checklist.append(f"Vídeo relacionado: {related['title'] or related['url']} ({related['url']})" if related
                              else "Vídeo relacionado: nenhum longo publicado neste canal ainda")
-    if platform in ("instagram", "tiktok"):
+    if platform == "instagram":
         checklist.append("Escolher a capa (primeiro frame com o gancho)")
     return {
         "publication": p, "channel": c, "render_id": r.id,
@@ -243,6 +262,38 @@ def kit(pub_id: int, session: Session = Depends(get_session)):
         "is_short": short, "end_screen_video": end_screen, "end_screen_from": meta.get("end_screen_from"),
         "related_video": related, "made_for_kids": kids, "made_for_kids_locked": kids, "synthetic": synthetic,
         "category": category, "chapters": chapters, "title_variants": title_variants,
+    }
+
+
+def _tiktok_kit(session: Session, p: Publication, r: Render, c: Channel, project: Project | None) -> dict:
+    """The TikTok kit: the same vertical file as the YouTube Short, its own caption, the AI label by the same rule as
+    YouTube's box (cvm/publish/tiktok.py), TikTok Studio's upload page. Posting is the user's click."""
+    from cvm.publish import tiktok
+
+    meta = r.meta or {}
+    ai = tiktok.ai_label(session, project, r, c)
+    handle = ((c.prefs or {}).get("accounts") or {}).get("tiktok")
+    secs = tiktok.render_seconds(r)
+    checklist = [
+        f"Entrar no TikTok Studio como @{handle}" if handle else "Entrar no TikTok Studio com a conta do canal",
+        "Enviar o arquivo de vídeo",
+        "Colar a legenda (já tem as hashtags)",
+        "Escolher a capa (primeiro frame com o gancho)",
+        "Em “Mostrar mais”, ligar “Conteúdo gerado por IA” (o avatar de IA aparece no vídeo)" if ai
+        else "Em “Mostrar mais”, deixar “Conteúdo gerado por IA” desligado (sem avatar na tela)",
+        "Quem pode ver: Todos",
+    ]
+    if secs and secs > tiktok.max_seconds() + 0.5:
+        checklist.insert(0, f"Atenção: o vídeo tem {int(secs)} s, acima de {int(tiktok.max_seconds())} s")
+    return {
+        "publication": p, "channel": c, "render_id": r.id,
+        "file_url": f"/renders/{r.id}/file", "thumbnail_url": f"/renders/{r.id}/thumbnail", "file_path": r.path,
+        "video_removed": meta.get("video_removed"), "thumbnail_variants": [],
+        "title": (r.seo or {}).get("title"), "description": None, "tags": [],
+        "hashtags": tiktok.hashtags(r.seo or {}), "caption": tiktok.caption(r),
+        "upload_page": UPLOAD_PAGES["tiktok"], "checklist": checklist, "is_short": True,
+        "made_for_kids": bool(c.made_for_kids), "made_for_kids_locked": bool(c.made_for_kids),
+        "synthetic": ai, "ai_label": ai, "handle": handle, "duration": secs, "max_seconds": tiktok.max_seconds(),
     }
 
 

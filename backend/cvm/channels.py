@@ -40,8 +40,12 @@ def check_language(language: str | None) -> None:
 
 
 def producing(session: Session) -> list[Channel]:
-    """Channels that take new videos (ideas, /novo, autopilot, batch)."""
-    return [c for c in session.exec(select(Channel)).all() if (c.status or "active") == "active"]
+    """Channels that take new videos (ideas, /novo, autopilot, batch). A TikTok account linked to a YouTube channel
+    (cvm/publish/tiktok.py) only receives that channel's Shorts: never new videos."""
+    from cvm.publish.tiktok import is_linked_account
+
+    return [c for c in session.exec(select(Channel)).all()
+            if (c.status or "active") == "active" and not is_linked_account(c)]
 
 
 def check_new_project(channel: Channel | None, languages: list[str] | None) -> None:
@@ -50,6 +54,11 @@ def check_new_project(channel: Channel | None, languages: list[str] | None) -> N
     if (channel.status or "active") != "active":
         why = {"paused": "está pausado", "series": "é uma série (publique pelo canal que a exibe)"}
         raise ChannelClosed(f"O canal {channel.name} {why.get(channel.status, 'está arquivado')}: não recebe vídeos novos.")
+    from cvm.publish.tiktok import is_linked_account
+
+    if is_linked_account(channel):
+        raise ChannelClosed(f"{channel.name} é a conta do TikTok de outro canal: recebe só os Shorts aprovados dele, "
+                            "não vídeos novos.")
     extra = [lang for lang in (languages or []) if lang != channel.language]
     if extra:
         raise ChannelClosed(f"O canal {channel.name} é só {channel.language}; {', '.join(extra)} vai para o canal "
